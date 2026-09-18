@@ -8,6 +8,7 @@ User-facing clone-and-run stays in the README. **This file is the toolchain cont
 swift run Pulse              # build and run (no app bundle, no Sparkle, no SMAppService)
 swift build                  # type-check, including #Preview
 ./Scripts/bundle.sh          # → build.noindex/Pulse.app
+./Scripts/install-local.sh   # this Mac's arch only → replaces /Applications/Pulse.app, reopens it
 ./Scripts/dmg.sh             # → build.noindex/Pulse-<version>.dmg
 ./Scripts/check-localization.sh
 ```
@@ -53,3 +54,9 @@ A loose executable is a different app from `Pulse.app`:
 - Safari Full Disk Access, if ever needed for a session cookie, is granted **per application** — the bundled app and `swift run` are not the same grant
 
 Do not test shipping behaviour (updates, login item, Gatekeeper, DMG layout) on `swift run`.
+
+## Your own build
+
+`./Scripts/install-local.sh` builds only this Mac's architecture, then quits, replaces and reopens `/Applications/Pulse.app`. A failed build or signature leaves the installed copy alone. The single `--arch` runs with `--build-system xcode`: SwiftPM's native build system, which one `--arch` otherwise gets, generates a `Bundle.module` that looks beside the `.app` and then in `.build`, never in `Contents/Resources` — so the app crashes at launch once `.build` is cleaned.
+
+It signs with a certificate, because an ad-hoc signature is the binary's own hash and every rebuild would be a new program to the keychain's "Always Allow" list and to privacy grants such as Full Disk Access ([releasing.md](releasing.md)). The identity is looked up, never committed: `PULSE_SIGN_IDENTITY` (a name, a SHA-1 hash, or `-` for ad-hoc), else the keychain's one valid Apple Development identity, else ad-hoc. With more than one it stops and lists them.
