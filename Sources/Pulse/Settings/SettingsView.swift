@@ -2149,7 +2149,7 @@ struct SettingsView: View {
         // with nothing in it to suggest what went wrong.
         case .volcengine:
             .localized("AccessKeyID:SecretAccessKey, from Volcengine. Optional — arkcli needs none. Stored encrypted on this Mac.")
-        // Optional, like Volcengine's: `cmd auth login` already leaves a key
+        // Optional, like Volcengine's: `cmd login` already leaves a key
         // Pulse can read, and this field is for anyone whose account is signed
         // in somewhere other than this Mac.
         case .commandCode:

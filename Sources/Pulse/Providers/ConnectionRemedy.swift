@@ -66,6 +66,9 @@ enum ConnectionRemedy: Equatable {
         }
     }
 
+    /// The user's setup page, not the provider's developer doc: where the key
+    /// comes from and where it goes. One page per link — the two providers
+    /// that share a service share a page too.
     static func helpURL(for provider: Provider) -> URL {
         let page: String = switch provider {
         case .claudeCode: "claude-code"
@@ -90,6 +93,6 @@ enum ConnectionRemedy: Equatable {
         case .newAPI: "newapi"
         case .v2ex: "v2ex"
         }
-        return URL(string: "https://github.com/qunqin24/Pulse/blob/main/Docs/providers/\(page).md")!
+        return URL(string: "https://github.com/qunqin24/Pulse/blob/main/Docs/setup/\(page).md")!
     }
 }
