@@ -1323,6 +1323,11 @@ struct SettingsView: View {
             case .xiaomiMiMo:
                 host = XiaomiMiMoClient.host
                 keep = { try? XiaomiMiMoCookie.normalize($0) }
+            // The chosen site's host and no other: `qoder.com.cn`'s session
+            // is not `qoder.com`'s, and is never read on its behalf.
+            case .qoder:
+                host = settings.qoderSite.host
+                keep = { try? QoderCookie.normalize($0) }
             case .claudeCode, .codex, .kiro, .antigravity, .cursor, .openCodeGo,
                  .kimiCode, .zai, .glmCoding, .minimax, .minimaxCN, .copilot,
                  .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin,
@@ -1356,6 +1361,8 @@ struct SettingsView: View {
                 sessionMessage = switch account.provider {
                 case .xiaomiMiMo:
                     String.localized("No Xiaomi session found. Sign in at platform.xiaomimimo.com first.")
+                case .qoder:
+                    String.localized("No Qoder session found. Sign in at \(settings.qoderSite.host) first.")
                 default:
                     String.localized("No Ollama session found. Sign in at ollama.com first.")
                 }
@@ -2043,6 +2050,41 @@ struct SettingsView: View {
         }
     }
 
+    /// Which Qoder site the account is on.
+    ///
+    /// **Changing it discards the saved session.** The two sites are two
+    /// sign-ins, and a session kept across the switch would be sent to the
+    /// host that did not issue it — the one thing `QoderSite` exists to rule
+    /// out. The reader reads the new site's session next, which is what the
+    /// subtitle says.
+    private func qoderSiteRow(for account: AccountKey) -> some View {
+        SettingsRow(
+            String.localized("Site"),
+            subtitle: String.localized("Where you signed in. Changing it clears the saved session.")
+        ) {
+            Picker("", selection: Binding(
+                get: { settings.qoderSite },
+                set: { site in
+                    guard site != settings.qoderSite else { return }
+                    settings.qoderSite = site
+                    guard APIKeyStore.setKey(nil, for: .qoder) else { return }
+                    apiKey = ""
+                    savedKey = ""
+                    sessionMessage = nil
+                    store.loadAPIKeys()
+                    store.refresh(account)
+                }
+            )) {
+                ForEach(QoderSite.allCases, id: \.self) { site in
+                    Text(verbatim: site.host).tag(site)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: SettingsLayout.controlWidth, alignment: .trailing)
+        }
+    }
+
     /// Where a self-hosted gateway lives.
     ///
     /// The only addresses in the app a reader types, so the only ones that can
@@ -2351,6 +2393,13 @@ struct SettingsView: View {
             // top of a pane for a self-hosted service is a step out of order.
             if account.provider.usesServerAddress {
                 serverAddressRow(for: account)
+                SettingsRowDivider()
+            }
+
+            // Above the session for the same reason: which site decides which
+            // cookies the browser is asked for.
+            if account.provider == .qoder {
+                qoderSiteRow(for: account)
                 SettingsRowDivider()
             }
 

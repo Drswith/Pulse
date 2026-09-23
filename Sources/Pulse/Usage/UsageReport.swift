@@ -193,6 +193,8 @@ enum UsageReport {
             case .messages: "messages"
             case .monthly: "monthly"
             case .topUp: "topUp"
+            case .credits: "credits"
+            case .sharedCredits: "sharedCredits"
             case .other(let seconds): "other:\(seconds)"
             }
         }

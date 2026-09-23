@@ -29,6 +29,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     case sub2api
     case newAPI
     case v2ex
+    case qoder
 
     var id: String { rawValue }
 
@@ -107,6 +108,11 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // top-ups, and a Solana balance — so it belongs to the membership
         // rather than to a product bought separately.
         case .v2ex: "V2EX"
+        // The product, as its own site writes it. One entry for both sites:
+        // unlike MiniMax's two storefronts these are one product sold under
+        // one name, and the site is a setting of the account rather than a
+        // second thing somebody subscribes to (`QoderSite`).
+        case .qoder: "Qoder"
         }
     }
 
@@ -160,6 +166,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // between them.
         case .newAPI: "newapi"
         case .v2ex: "v2ex"
+        case .qoder: "qoder"
         }
     }
 
@@ -180,7 +187,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .kiro, .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
              .volcengine, .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api,
-             .newAPI, .v2ex: false
+             .newAPI, .v2ex, .qoder: false
         }
     }
 
@@ -194,7 +201,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .minimax, .minimaxCN, .copilot, .grok, .grokBot, .volcengine,
              .commandCode, .deepSeek, .devin, .xiaomiMiMo,
-             .sub2api, .newAPI, .v2ex: false
+             .sub2api, .newAPI, .v2ex, .qoder: false
         }
     }
 
@@ -241,7 +248,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .claudeCode, .codex, .volcengine, .devin: true
         case .kiro, .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
-             .commandCode, .deepSeek, .xiaomiMiMo, .sub2api, .newAPI, .v2ex: false
+             .commandCode, .deepSeek, .xiaomiMiMo, .sub2api, .newAPI, .v2ex, .qoder: false
         }
     }
 
@@ -280,7 +287,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // about elsewhere, so there is nothing here to state.
         case .claudeCode, .codex, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI, .v2ex:
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI, .v2ex, .qoder:
             nil
         }
     }
@@ -293,7 +300,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     var usesAPIKey: Bool {
         [.openCodeGo, .kimiCode, .ollamaCloud, .zai, .glmCoding, .minimax, .minimaxCN, .volcengine,
          .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI,
-         .v2ex].contains(self)
+         .v2ex, .qoder].contains(self)
     }
 
     /// Whether this Mac can see the thing this provider is billing for.
@@ -361,7 +368,9 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// Xiaomi joins it for the same reason: the platform's API keys buy
     /// inference and answer none of the console's account routes, so the plan
     /// and the balance are behind the web session and nothing else.
-    var usesSessionCookie: Bool { self == .ollamaCloud || self == .xiaomiMiMo }
+    /// Qoder is the third: it publishes no usage API at all, and its account
+    /// page reads its credits with the signed-in session.
+    var usesSessionCookie: Bool { [.ollamaCloud, .xiaomiMiMo, .qoder].contains(self) }
 
     /// Whether this provider's credential is read out of a browser rather than
     /// out of another tool's files.

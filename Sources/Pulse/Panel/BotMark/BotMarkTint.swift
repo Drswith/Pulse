@@ -42,6 +42,11 @@ enum BotMarkTint {
         // sub2api's own mark is a green-to-blue gradient; the blue end is
         // what a single flat colour of it reads as.
         case .sub2api: BotMarkPalette.rgb(0x3875F6)
+        // Qoder's green, the one colour in its mark. Green is also what a
+        // healthy ring is drawn in, which is the hazard named above; if a
+        // Qoder body inside a green ring reads as one blob, this is the line
+        // to change.
+        case .qoder: BotMarkPalette.rgb(0x2ADB5C)
         // V2EX draws a light arrow on near-black and has no other colour.
         // New API's own mark is a cyan-to-pink pair; neither end is the
         // colour, so it takes one of Pulse's own rather than half a gradient.

@@ -650,3 +650,12 @@
 "A Personal Access Token from v2ex.com. Stored encrypted on this Mac." = "在 v2ex.com 生成的个人访问令牌。加密保存在本机。";
 "Your own deployment's address, such as https://gateway.example.com. Pulse asks it for usage and sends nothing else." = "你自己那台网关的地址，例如 https://gateway.example.com。Pulse 只向它查用量，别的什么都不发。";
 "The same key your AI client uses for this gateway. Sent only to the address above. Stored encrypted on this Mac." = "你的 AI 客户端连这台网关用的那个 key。只发到上面那个地址。加密保存在本机。";
+"Credit allowance" = "积分额度";
+"Team credits" = "团队共享积分";
+"Sign in to Qoder in a browser to see usage." = "在浏览器里登录 Qoder 后才能看到用量。";
+"Qoder's saved session expired. Sign in again in your browser." = "Qoder 的登录信息已过期，请在浏览器里重新登录。";
+"This Qoder account has no credits." = "这个 Qoder 账号上没有积分。";
+"Reads your credits with your signed-in browser session." = "用你已登录的浏览器会话读取积分。";
+"No Qoder session found. Sign in at %@ first." = "没找到 Qoder 的登录信息。请先在 %@ 登录。";
+"Site" = "站点";
+"Where you signed in. Changing it clears the saved session." = "你在哪个站登录的。切换后会清掉已保存的登录信息。";

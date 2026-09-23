@@ -78,6 +78,16 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         /// that is topped up has not turned over, which is why
         /// `hasTurnedOver` excludes it alongside `.balance`.
         case topUp
+        /// An allowance counted in the provider's own credits, with a reset it
+        /// states and no length it claims. Qoder's is the first: the plan's
+        /// credits and any pack bought on top, as one figure. Not `.monthly`,
+        /// because a trial's run a fortnight and nothing in the reply says how
+        /// long a period is — a name that states a length would be a claim.
+        case credits
+        /// A team's pool of those credits, shared by everyone on the plan and
+        /// reported beside the member's own. Its own kind so the two rows are
+        /// told apart on the card, and so they are never summed into one.
+        case sharedCredits
         case other(seconds: Int)
     }
 
@@ -272,6 +282,10 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         case .messages: .localized("Message allowance")
         case .monthly: .localized("Monthly limit")
         case .topUp: .localized("Top-up pack")
+        // Not "Credits", which is already the About pane's acknowledgements
+        // and translates as 致谢 — one key cannot be both.
+        case .credits: .localized("Credit allowance")
+        case .sharedCredits: .localized("Team credits")
         // Days only when it is a whole number of them: rounded, 36 hours read
         // as a two-day limit. Never below an hour, which is the finest unit
         // anything here states.
@@ -515,6 +529,15 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
         /// buys tokens by the yuan instead. A complete answer, not a fault,
         /// and the same distinction `zaiNoCodingPlan` exists for.
         case xiaomiNoCodingPlan
+        /// Qoder's account page answers only to a browser session; missing
+        /// and expired are the two ways that fails, named for the site the
+        /// remedy sends somebody to.
+        case qoderSessionMissing
+        case qoderSessionExpired
+        /// The session works and the account reports a credit limit of zero.
+        /// A complete answer — nothing has been granted — and not a ring at
+        /// 100%, which would say something was spent.
+        case qoderNoCredits
         /// A provider whose address is the reader's own has not been given
         /// one. Separate from a missing key because they are two fields and
         /// two steps, and "add an API key" about the one that already has a
@@ -566,6 +589,9 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
             case .xiaomiSessionMissing: .localized("Sign in to Xiaomi's platform in a browser to see usage.")
             case .xiaomiSessionExpired: .localized("Xiaomi's saved session expired. Sign in again in your browser.")
             case .xiaomiNoCodingPlan: .localized("No Coding Plan on this Xiaomi account.")
+            case .qoderSessionMissing: .localized("Sign in to Qoder in a browser to see usage.")
+            case .qoderSessionExpired: .localized("Qoder's saved session expired. Sign in again in your browser.")
+            case .qoderNoCredits: .localized("This Qoder account has no credits.")
             case .ollamaSessionMissing: .localized("Add an Ollama session in Settings.")
             case .ollamaSessionExpired: .localized("The Ollama session expired. Sign in again and add it.")
             case .ollamaPageChanged: .localized("Ollama's page has changed and can no longer be read.")
@@ -646,10 +672,11 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
     /// accounts and different organizations; every other provider's cannot.
     ///
     /// The two gateways too: each reading is only as good as the server it was
-    /// read from, and the reader can point the account at another one.
+    /// read from, and the reader can point the account at another one. Qoder
+    /// likewise: its two sites are two accounts, and the site is a setting.
     var requiresScopeMatch: Bool {
         switch account.provider {
-        case .devin, .sub2api, .newAPI: true
+        case .devin, .sub2api, .newAPI, .qoder: true
         default: false
         }
     }

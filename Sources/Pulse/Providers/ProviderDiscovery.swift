@@ -35,6 +35,10 @@ extension Provider {
             return ["Devin", "Windsurf"].map {
                 local("Library/Application Support/\($0)/User/globalStorage/state.vscdb")
             }
+        // The editor, either edition. A hint only: what is read is the
+        // browser's session for the account page, not anything the app keeps.
+        case .qoder:
+            return ["Qoder", "QoderCN"].map { local("Library/Application Support/\($0)") } + app("Qoder")
         // sub2api is somebody's own deployment and V2EX is a website; there
         // is nothing on this Mac that says either is in use.
         case .kimiCode, .ollamaCloud, .zai, .minimax, .minimaxCN, .copilot,

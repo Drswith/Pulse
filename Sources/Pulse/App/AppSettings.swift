@@ -118,6 +118,22 @@ final class AppSettings {
         }
     }
 
+    /// Which Qoder site the saved session belongs to.
+    ///
+    /// `qoder.com` and `qoder.com.cn` are two sign-ins on two hosts, and a
+    /// session for one is refused by — and must never be sent to — the other.
+    /// So the site decides both where the browser is asked for cookies and
+    /// where the request goes, and changing it discards the session saved for
+    /// the old one (Settings does that). A scalar, like DeepSeek's settings
+    /// beside it, because Qoder has no second account.
+    var qoderSite: QoderSite {
+        didSet {
+            guard qoderSite != oldValue else { return }
+            UserDefaults.standard.set(qoderSite.rawValue, forKey: Key.qoderSite)
+            onChange?()
+        }
+    }
+
     /// Where Pulse sends a self-hosted gateway's request, per account.
     ///
     /// sub2api and New API are somebody's own deployments, so unlike every
@@ -967,6 +983,7 @@ final class AppSettings {
         deepSeekBasis: DeepSeekBasis = .default,
         deepSeekBudget: Double? = nil,
         deepSeekCurrency: String? = nil,
+        qoderSite: QoderSite = .international,
         serverAddresses: [String: String] = [:],
         lowBalanceAlerts: [String: Double] = [:],
         enabledAccounts: Set<String> = Set(Provider.allCases.map(\.rawValue)),
@@ -1016,6 +1033,7 @@ final class AppSettings {
         self.deepSeekBasis = deepSeekBasis
         self.deepSeekBudget = deepSeekBudget
         self.deepSeekCurrency = deepSeekCurrency
+        self.qoderSite = qoderSite
         self.serverAddresses = serverAddresses
         self.lowBalanceAlerts = lowBalanceAlerts
         self.enabledAccounts = enabledAccounts
@@ -1295,6 +1313,8 @@ final class AppSettings {
                 .flatMap(DeepSeekBasis.init(rawValue:)) ?? .default,
             deepSeekBudget: defaults.object(forKey: Key.deepSeekBudget) as? Double,
             deepSeekCurrency: defaults.string(forKey: Key.deepSeekCurrency),
+            qoderSite: defaults.string(forKey: Key.qoderSite)
+                .flatMap(QoderSite.init(rawValue:)) ?? .international,
             serverAddresses: defaults.dictionary(forKey: Key.serverAddresses) as? [String: String] ?? [:],
             lowBalanceAlerts: defaults.dictionary(forKey: Key.lowBalanceAlerts) as? [String: Double] ?? [:],
             enabledAccounts: selection.enabledAccounts,
@@ -1423,6 +1443,7 @@ final class AppSettings {
         static let deepSeekBasis = "settings.deepSeekBasis"
         static let deepSeekBudget = "settings.deepSeekBudget"
         static let deepSeekCurrency = "settings.deepSeekCurrency"
+        static let qoderSite = "settings.qoderSite"
         static let serverAddresses = "settings.serverAddresses"
         static let lowBalanceAlerts = "settings.lowBalanceAlerts"
         static let language = "settings.language"

@@ -41,12 +41,13 @@ enum ConnectionRemedy: Equatable {
         case .apiKeyMissing, .apiKeyRefused, .devinOrganizationMissing: return .editCredential
         case .serverAddressMissing, .serverAddressRefused: return .editAddress
         case .ollamaSessionMissing, .ollamaSessionExpired,
-             .xiaomiSessionMissing, .xiaomiSessionExpired: return .readBrowser
+             .xiaomiSessionMissing, .xiaomiSessionExpired,
+             .qoderSessionMissing, .qoderSessionExpired: return .readBrowser
         case .claudeDesktopKeyRefused, .unreachable, .rateLimited, .serverError,
              .codexServerFailed: return .retry
         case .codexNotInstalled, .kiroNotInstalled, .kiroVersionUnsupported,
              .volcengineCLIMissing, .noLimitsReported,
-             .grokBotNotIncluded, .zaiNoCodingPlan, .xiaomiNoCodingPlan,
+             .grokBotNotIncluded, .zaiNoCodingPlan, .xiaomiNoCodingPlan, .qoderNoCredits,
              .ollamaPageChanged, .unreadableReply:
             return .help
         }
@@ -92,6 +93,7 @@ enum ConnectionRemedy: Equatable {
         case .sub2api: "sub2api"
         case .newAPI: "newapi"
         case .v2ex: "v2ex"
+        case .qoder: "qoder"
         }
         return URL(string: "https://github.com/qunqin24/Pulse/blob/main/Docs/setup/\(page).md")!
     }

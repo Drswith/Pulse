@@ -408,6 +408,7 @@ final class UsageStore {
         let kimi = KimiCodeUsageService(enteredKey: apiKeys[.kimiCode])
         let ollama = OllamaCloudUsageService(cookie: apiKeys[.ollamaCloud])
         let xiaomi = XiaomiMiMoUsageService(cookie: apiKeys[.xiaomiMiMo])
+        let qoder = QoderUsageService(cookie: apiKeys[.qoder], site: settings.qoderSite)
         let zai = ZaiUsageService(provider: .zai, enteredKey: apiKeys[.zai])
         let glm = ZaiUsageService(provider: .glmCoding, enteredKey: apiKeys[.glmCoding])
         let minimax = MiniMaxUsageService(provider: .minimax, enteredKey: apiKeys[.minimax])
@@ -530,6 +531,9 @@ final class UsageStore {
             async let v2exUsage = wanted.contains(.v2ex)
                 ? await v2ex.fetch()
                 : ProviderUsage.unavailable(.v2ex, reason: .loading)
+            async let qoderUsage = wanted.contains(.qoder)
+                ? await qoder.fetch()
+                : ProviderUsage.unavailable(.qoder, reason: .loading)
 
             let (rawCodex, rawKiro, rawClaude, rawAntigravity, rawOpenCode) =
                 await (codexUsage, kiroUsage, claudeUsage, antigravityUsage, openCodeUsage)
@@ -540,7 +544,7 @@ final class UsageStore {
             let (rawVolcengine, rawCommandCode) = await (volcengineUsage, commandCodeUsage)
             let (rawDeepSeek, rawDevin) = await (deepSeekUsage, devinUsage)
             let (rawSub2API, rawNewAPI, rawV2EX) = await (sub2apiUsage, newAPIUsage, v2exUsage)
-            let rawXiaomi = await xiaomiUsage
+            let (rawXiaomi, rawQoder) = await (xiaomiUsage, qoderUsage)
 
             // **The disowning is checked before anything is written, not just
             // before the readings are handed to the panel.** `reconciled`
@@ -585,6 +589,7 @@ final class UsageStore {
                 (.sub2api, rawSub2API),
                 (.newAPI, rawNewAPI),
                 (.v2ex, rawV2EX),
+                (.qoder, rawQoder),
             ] where wanted.contains(provider) {
                 results.append(BatchResult(
                     provider: provider,
@@ -683,6 +688,7 @@ final class UsageStore {
         let kimi = KimiCodeUsageService(enteredKey: key)
         let ollama = OllamaCloudUsageService(cookie: key)
         let xiaomi = XiaomiMiMoUsageService(cookie: key)
+        let qoder = QoderUsageService(cookie: key, site: settings.qoderSite)
         let zai = ZaiUsageService(provider: provider, enteredKey: key)
         let minimax = MiniMaxUsageService(provider: provider, enteredKey: key)
         let volcengine = VolcengineUsageService(enteredKey: key)
@@ -753,6 +759,8 @@ final class UsageStore {
                 raw = await newAPI.fetch()
             case .v2ex:
                 raw = await v2ex.fetch()
+            case .qoder:
+                raw = await qoder.fetch()
             }
             }
 
@@ -826,7 +834,7 @@ final class UsageStore {
         case .kiro, .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
              .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI,
-             .v2ex:
+             .v2ex, .qoder:
             .unavailable(account, reason: .loading)
         }
     }

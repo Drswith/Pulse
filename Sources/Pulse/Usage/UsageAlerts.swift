@@ -391,6 +391,7 @@ struct AlertMemory: Codable, Sendable, Equatable {
         case .claudeLoginExpired, .claudeDesktopKeyRefused, .claudeDesktopSessionExpired,
              .cursorLoginExpired, .grokLoginExpired, .signedOut, .apiKeyRefused,
              .ollamaSessionExpired, .ollamaPageChanged, .xiaomiSessionExpired,
+             .qoderSessionExpired,
              .unreachable, .unreadableReply, .rateLimited, .serverError,
              .codexServerFailed:
             .failure
@@ -408,7 +409,10 @@ struct AlertMemory: Codable, Sendable, Equatable {
              .zaiNoCodingPlan,
              // And the same again for Xiaomi: the session worked and the
              // account simply has no plan on it.
-             .xiaomiNoCodingPlan:
+             .xiaomiNoCodingPlan,
+             // And for Qoder: the session worked and the account holds no
+             // credits. An answer, not an outage.
+             .qoderNoCredits:
             .answered
 
         // Never set up, never signed in, or an app that simply is not
@@ -419,7 +423,7 @@ struct AlertMemory: Codable, Sendable, Equatable {
              .codexNotInstalled, .kiroNotInstalled, .kiroVersionUnsupported,
              .kiroSignInRequired, .antigravityNotRunning, .antigravityNotAnswering,
              .cursorSignInRequired, .grokSignInRequired, .notSignedIn,
-             .ollamaSessionMissing, .xiaomiSessionMissing,
+             .ollamaSessionMissing, .xiaomiSessionMissing, .qoderSessionMissing,
              .apiKeyMissing, .volcengineCLIMissing,
              .volcengineSignInRequired,
              // An app that was never installed or never signed in, which is
