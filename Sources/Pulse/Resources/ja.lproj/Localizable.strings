@@ -7,6 +7,12 @@
 "Panel" = "パネル";
 "Application" = "アプリケーション";
 "General" = "一般";
+"Appearance" = "外観";
+"Rings and figures" = "リングと数値";
+"Position and behavior" = "位置と動作";
+"Network and refresh" = "ネットワークと更新";
+"Figures" = "数値";
+"Rings" = "リング";
 "Providers" = "プロバイダ";
 "About" = "このアプリについて";
 

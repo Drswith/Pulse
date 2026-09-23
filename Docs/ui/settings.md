@@ -12,7 +12,7 @@ The sidebar is `.searchable(placement: .sidebar)` — **not** `.automatic`: this
 
 On initial setup, **Done** is disabled until at least one is selected; closing the window leaves monitoring stopped. On an upgrade, the chooser only contains newly supported detected providers and may be completed with none selected. Existing choices continue to run. Restoration and dismissal rules: [../architecture.md](../architecture.md#provider-choice-before-monitoring).
 
-Settings stays reachable after dismissing the initial chooser. General points to the provider panes; a disabled primary provider displays the same access description above **Show in panel**. Enabling it starts monitoring. Connection, sign-in, diagnostics and usage controls appear after the initial choice, but Current usage says **Not shown** and Retry is unavailable while that account is off. Merely opening a disabled pane does not preload its saved key, read its history, or start any provider request or Codex's app server.
+Settings stays reachable after dismissing the initial chooser. Appearance points to the provider panes; a disabled primary provider displays the same access description above **Show in panel**. Enabling it starts monitoring. Connection, sign-in, diagnostics and usage controls appear after the initial choice, but Current usage says **Not shown** and Retry is unavailable while that account is off. Merely opening a disabled pane does not preload its saved key, read its history, or start any provider request or Codex's app server.
 
 ## Copy
 
@@ -24,7 +24,21 @@ While Liquid Glass is on, a **Transparency** slider appears under it (`glassTran
 
 While Liquid Glass is on, the caption still says to drag the panel by a ring. That is current UI. The historical “glass swallows input” diagnosis is uncertain; [rings-and-surface.md](rings-and-surface.md).
 
-Group order in the general pane: **Floating panel → Notifications → Refresh → Network → Order → Application → Shortcuts → Language**. The groups that decide what Pulse does *on its own* sit directly under the panel group, above the housekeeping ones. Notifications was added at the bottom, between Refresh and Language, and that was too far down to find — the panel group alone is nineteen rows. Network follows Refresh because both decide how Pulse gets a new reading. [../networking.md](../networking.md)
+**Panes.** What was one General pane of thirty-odd rows is split by subject (`SettingsPane`):
+
+| Sidebar section | Pane | Holds |
+|---|---|---|
+| Panel | **Appearance** | Size, Spacing, Round ends, Liquid Glass (+ Transparency), Ring activity animation |
+| Panel | **Rings and figures** | *Figures*: percentages at the side / on top, figure above the ring, show what's left, forecast. *Rings*: second limit, time until reset, time ring direction, turn red at, alert colour when docked |
+| Panel | **Position and behavior** | Show floating panel, hide in full screen, hide until pointed at, position, follow the active display; **Order** |
+| Panel | Token spend | unchanged |
+| Application | **General** | Open at login, hide menu bar icon; Shortcuts; Language |
+| Application | **Notifications** | Warn at, when a limit comes back, when a reading stops arriving |
+| Application | **Network and refresh** | Check every; proxy |
+| Accounts | one per account | unchanged |
+| (untitled, last) | Developer integrations, About | unchanged |
+
+Panel and Application sit **above** the accounts, for the reason Token spend does: under twenty-odd provider rows they were below the fold, and they are what Settings is opened for. Integrations and About are rarely visited and stay below. The window opens on **Appearance**, the first row (`SettingsNavigation.pane`, and the `pulse://settings` link). Search matches a pane by its title **or** by any of its rows' titles (`SettingsPane.searchTerms`) — keep that list in step when a row moves or is added. Rows were moved verbatim; their own rules below still hold. [../networking.md](../networking.md)
 
 
 **Round ends** sits with Size and Spacing, because like them it changes what the rail measures rather than what it says: `AppSettings.usesRoundEnds`, **off** by default. One switch over the rail's ends, the flare into the screen edge, the end padding and the card's tail — they are one idea, and split up they would let a round end sit on the softened style's padding, with the first ring hard against the curve it is meant to be centred in. Off is the rail Pulse shipped with. [panel-geometry.md](panel-geometry.md)
@@ -43,9 +57,9 @@ The **Application** group contains **Open at login** and **Hide menu bar icon**.
 
 **Shortcuts** sits with Application because both are about the app rather than about a reading, and above Language because Language is the last thing anybody looks for. Two rows, both empty until set, each a `ShortcutField`: click it, press the combination, ⎋ leaves it alone and ⌫ takes it away. The subtitle is the row's own line **unless** the window server refused the combination, in which case the clash takes the line over — that is the only thing the monitor knows and the pane does not. Setting one writes the setting and calls `GlobalShortcutMonitor.apply` there and then; after both actions have been applied, its registration callback rechecks the app-entry invariant above. Shortcuts deliberately do **not** go through `AppSettings.onChange`, which refetches every provider. Rules and why hot keys rather than an event tap: [input.md](input.md).
 
-An account pane grows a **Notifications** group of its own where `Provider.reportsSpendableBalance` is true — a "warn below" figure in money. Not a row under Connection, which is about credentials and routes, and not in the general pane's Notifications group either: the figure is per account, because the providers that report a balance do not price in the same currency. [../notifications.md](../notifications.md)
+An account pane grows a **Notifications** group of its own where `Provider.reportsSpendableBalance` is true — a "warn below" figure in money. Not a row under Connection, which is about credentials and routes, and not in the Notifications pane either: the figure is per account, because the providers that report a balance do not price in the same currency. [../notifications.md](../notifications.md)
 
-The general pane's **Notifications** group's three controls are not independent of each other: the reset toggle is greyed out while the threshold is Off, because a reset is only announced for a window that was warned about, and every control is greyed out in an unbundled build. Its subtitle reports `UNAuthorizationStatus`, not the switches. Rules: [../notifications.md](../notifications.md).
+The **Notifications** pane's three controls are not independent of each other: the reset toggle is greyed out while the threshold is Off, because a reset is only announced for a window that was warned about, and every control is greyed out in an unbundled build. Its subtitle reports `UNAuthorizationStatus`, not the switches. Rules: [../notifications.md](../notifications.md).
 
 ## Controls
 
@@ -59,7 +73,7 @@ SwiftUI `Picker` / `Menu` on macOS **cannot be given a width**. `.frame`, min/ma
 
 Sidebar column: **min 200, ideal 240, max 320**. Sized to "Xiaomi Coding Plan", the longest name in the list at eighteen characters, with "GitHub Copilot" behind it — at the original 170/180/220 the long ones truncated to an ellipsis, on a list whose only job is telling twenty-three products apart. `ideal` went 200 → 240 when the eighteen-character name arrived; it is scaled from the fourteen-character one that fit rather than measured against a render, so a name longer than this wants checking in the running app rather than arithmetic. They are brand names, so the requirement does not move with the language. `min` is the half that matters: AppKit saves the divider position, so `ideal` is read once per install while `min` clamps everyone.
 
-Default window: **920 × 660**, set on the `NSWindow`'s `contentRect`; the view's `minWidth` / `minHeight` (720 × 460) are what it can be dragged down to. It opened at 760 × 500 when the sidebar held four rows — with twenty-three providers and a six-group general pane that meant a window that was scrolling in both columns the moment it appeared. The size is not remembered across launches: the window is rebuilt and `center()`ed on each one.
+Default window: **920 × 660**, set on the `NSWindow`'s `contentRect`; the view's `minWidth` / `minHeight` (720 × 460) are what it can be dragged down to. It opened at 760 × 500 when the sidebar held four rows — with twenty-three providers and a thirty-row general pane (since split) that meant a window that was scrolling in both columns the moment it appeared. The size is not remembered across launches: the window is rebuilt and `center()`ed on each one.
 
 `ImageRenderer` cannot draw this window (split view + AppKit controls). Check by running the app.
 
@@ -81,7 +95,7 @@ Each account also has a **Connection diagnostics** group immediately after Conne
 
 Added accounts have a **Sign in again** control; successful reauthentication replaces credentials in the selected slot, preserving its name and display preferences. They do not show ambient CLI source controls that their fetch ignores. A cancelled sign-in or an account removed while sign-in is pending is not written back. One extra-account sign-in runs at a time, and its **Cancel**, device code and error rows appear only on the panes of the provider it was started for; other multi-account panes show a disabled **Sign in…** until it finishes. Provider-specific flows are documented in [../providers/authentication.md](../providers/authentication.md).
 
-The sidebar's Application section includes **Developer integrations**. It copies the actual executable's `--json` command with shell quoting, exports the bundled developer kit into a new `Pulse Integrations` folder, and copies links or `open` commands for any configured account. Exports refuse an existing destination and exclude dependency/build folders. Install instructions: [../integrations.md](../integrations.md).
+The sidebar's last, untitled section includes **Developer integrations**. It copies the actual executable's `--json` command with shell quoting, exports the bundled developer kit into a new `Pulse Integrations` folder, and copies links or `open` commands for any configured account. Exports refuse an existing destination and exclude dependency/build folders. Install instructions: [../integrations.md](../integrations.md).
 
 The Panel group's rows are per account: show, "Ring shows", ring colour — and, only where `Provider.splitsByModelGroup` is true, **"A ring for each model group"**. Drawn behind that flag rather than always with an explanation, because a switch that promises a second ring it can never draw is worse than no switch. Off by default; it costs a slot on the rail, and the rail is the whole of the panel when docked. [rings-and-surface.md](rings-and-surface.md)
 

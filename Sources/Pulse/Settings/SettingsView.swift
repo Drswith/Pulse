@@ -133,15 +133,24 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $navigation.pane) {
-                if matches(.general) || matches(.spend) {
+                if SettingsPane.panel.contains(where: matches) || matches(.spend) {
                     Section(String.localized("Panel")) {
-                        if matches(.general) { row(.general) }
+                        ForEach(SettingsPane.panel.filter(matches), id: \.self) { row($0) }
                         // Above the accounts, not below them. Eighteen
                         // provider rows is more than a sidebar shows at once,
                         // and a pane whose whole subject is "all of them
                         // together" was landing under the fold — reachable
                         // only by scrolling past the thing it summarises.
                         if matches(.spend) { row(.spend) }
+                    }
+                }
+
+                // Above the accounts for the same reason Token spend is: under
+                // twenty-odd provider rows these were below the fold, and they
+                // are the panes a person opens Settings for.
+                if SettingsPane.application.contains(where: matches) {
+                    Section(String.localized("Application")) {
+                        ForEach(SettingsPane.application.filter(matches), id: \.self) { row($0) }
                     }
                 }
 
@@ -155,10 +164,11 @@ struct SettingsView: View {
                     }
                 }
 
-                if matches(.about) || matches(.integrations) {
-                    Section(String.localized("Application")) {
-                        if matches(.integrations) { row(.integrations) }
-                        if matches(.about) { row(.about) }
+                // Rarely visited, so below the accounts: out of the way of the
+                // panes above, and still one scroll away.
+                if SettingsPane.trailing.contains(where: matches) {
+                    Section {
+                        ForEach(SettingsPane.trailing.filter(matches), id: \.self) { row($0) }
                     }
                 }
             }
@@ -207,8 +217,8 @@ struct SettingsView: View {
                 prompt: Text(localized: "Search")
             )
             .overlay {
-                if isSearching, matchingAccounts.isEmpty, !matches(.general), !matches(.spend),
-                   !matches(.about), !matches(.integrations) {
+                if isSearching, matchingAccounts.isEmpty,
+                   !(SettingsPane.panel + [.spend] + SettingsPane.application + SettingsPane.trailing).contains(where: matches) {
                     Text(localized: "No matches")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
@@ -222,7 +232,12 @@ struct SettingsView: View {
                             .id("heading")
 
                         switch pane {
-                        case .general: general
+                        case .appearance: appearancePane
+                        case .rings: ringsPane
+                        case .placement: placementPane
+                        case .general: generalPane
+                        case .notifications: notificationsPane
+                        case .network: networkPane
                         case .account(let account): accountPane(account)
                         case .spend:
                             SettingsGroup(String.localized("Token spend")) {
@@ -355,9 +370,12 @@ struct SettingsView: View {
         }
     }
 
+    /// By the pane's name, or by the name of any setting on it: with the
+    /// panel's settings spread over several panes, "proxy" has to find the
+    /// one proxy is on rather than nothing.
     private func matches(_ pane: SettingsPane) -> Bool {
         guard isSearching else { return true }
-        return matches(title(pane))
+        return matches(title(pane)) || pane.searchTerms.contains(where: matches)
     }
 
     /// Case- and accent-insensitive, and localized: `localizedStandardContains`
@@ -374,7 +392,7 @@ struct SettingsView: View {
             switch pane {
             case .account(let account):
                 LobeIconView(provider: account.provider, size: 14)
-            case .general, .spend, .about, .integrations:
+            default:
                 Image(systemName: pane.symbol)
             }
         }
@@ -383,42 +401,15 @@ struct SettingsView: View {
 
     // MARK: - Panes
 
-    private var general: some View {
+    /// How the rail and card look: size, spacing, the ends, the surface.
+    private var appearancePane: some View {
         VStack(alignment: .leading, spacing: 22) {
             if settings.needsProviderSelection {
                 Text(localized: "Enable a service in its settings to start monitoring.")
                     .foregroundStyle(.secondary)
             }
-            SettingsGroup(String.localized("Floating panel")) {
-                SettingsRow(
-                    String.localized("Show floating panel"),
-                    subtitle: String.localized("The usage rail at the edge of the screen.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.isPanelVisible },
-                        set: { settings.isPanelVisible = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                }
 
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Hide in full screen"),
-                    subtitle: String.localized("Keep the floating panel out of full-screen apps.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.hidesInFullScreen },
-                        set: { settings.hidesInFullScreen = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
+            SettingsGroup {
                 SettingsRow(
                     String.localized("Size"),
                     subtitle: String.localized("Size of the rail on screen.")
@@ -512,6 +503,224 @@ struct SettingsView: View {
                 SettingsRowDivider()
 
                 SettingsRow(
+                    String.localized("Ring activity animation"),
+                    subtitle: String.localized("The turning mark for a working CLI or a reading being fetched. Off leaves the ring still.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.animatesRingActivity },
+                        set: { settings.animatesRingActivity = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+            }
+        }
+    }
+
+    /// What each ring and the card say, and when they turn red.
+    private var ringsPane: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsGroup(String.localized("Figures")) {
+                SettingsRow(
+                    String.localized("Percentages at the side"),
+                    subtitle: String.localized("The figure under each ring, docked left or right.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.sideRailShowsPercentages },
+                        set: { settings.sideRailShowsPercentages = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Percentages on top"),
+                    subtitle: String.localized("Only when the panel is docked to the top.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.topRailShowsPercentages },
+                        set: { settings.topRailShowsPercentages = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Figure above the ring"),
+                    subtitle: String.localized("Swaps the two, wherever the panel is.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.labelAboveRing },
+                        set: { settings.labelAboveRing = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(
+                        !settings.isPanelVisible
+                            // Nothing to swap when neither rail shows a figure.
+                            || (!settings.sideRailShowsPercentages && !settings.topRailShowsPercentages)
+                    )
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Show what's left"),
+                    subtitle: String.localized("Counts down instead of up, figure and ring together.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.showsRemaining },
+                        set: { settings.showsRemaining = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Forecast"),
+                    subtitle: String.localized("Whether each limit lasts its window, on the card.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.showsForecast },
+                        set: { settings.showsForecast = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+            }
+
+            SettingsGroup(String.localized("Rings")) {
+                SettingsRow(
+                    String.localized("Second limit inside the ring"),
+                    subtitle: String.localized("A thinner ring for the next-fullest limit, where a provider has one.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.showsSecondRing },
+                        set: { settings.showsSecondRing = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Time until reset"),
+                    subtitle: String.localized("A second arc outside each ring, showing progress through the current window.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.showsWindowClock },
+                        set: { settings.showsWindowClock = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Time ring direction"),
+                    subtitle: String.localized("Choose whether the outer arc fills with elapsed time or empties with time remaining.")
+                ) {
+                    Picker("", selection: Binding(
+                        get: { settings.windowClockDirection },
+                        set: { settings.windowClockDirection = $0 }
+                    )) {
+                        ForEach(WindowClockDirection.allCases) { direction in
+                            Text(direction.title).tag(direction)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(width: SettingsLayout.controlWidth, alignment: .trailing)
+                    .disabled(!settings.isPanelVisible || !settings.showsWindowClock)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Turn red at"),
+                    subtitle: String.localized("Where a ring stops being amber. A spent limit is red whatever this says.")
+                ) {
+                    Picker(String.localized("Turn red at"), selection: Binding(
+                        get: { settings.warningThreshold },
+                        set: { settings.warningThreshold = $0 }
+                    )) {
+                        ForEach(WarningThreshold.allCases) { threshold in
+                            Text(threshold.title).tag(threshold)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Alert colour when docked"),
+                    subtitle: String.localized("Off keeps the collapsed rail neutral even when a limit needs attention.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.dockShowsAlertColor },
+                        set: { settings.dockShowsAlertColor = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+            }
+        }
+    }
+
+    /// Whether the rail is shown, where it sits, how it tucks away, and the
+    /// order of the rings on it.
+    private var placementPane: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsGroup {
+                SettingsRow(
+                    String.localized("Show floating panel"),
+                    subtitle: String.localized("The usage rail at the edge of the screen.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.isPanelVisible },
+                        set: { settings.isPanelVisible = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Hide in full screen"),
+                    subtitle: String.localized("Keep the floating panel out of full-screen apps.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.hidesInFullScreen },
+                        set: { settings.hidesInFullScreen = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
                     String.localized("Hide until pointed at"),
                     subtitle: String.localized("Against a screen edge, the rail shrinks to a sliver until you point at it.")
                 ) {
@@ -557,352 +766,6 @@ struct SettingsView: View {
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Percentages at the side"),
-                    subtitle: String.localized("The figure under each ring, docked left or right.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.sideRailShowsPercentages },
-                        set: { settings.sideRailShowsPercentages = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Time until reset"),
-                    subtitle: String.localized("A second arc outside each ring, showing progress through the current window.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.showsWindowClock },
-                        set: { settings.showsWindowClock = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Time ring direction"),
-                    subtitle: String.localized("Choose whether the outer arc fills with elapsed time or empties with time remaining.")
-                ) {
-                    Picker("", selection: Binding(
-                        get: { settings.windowClockDirection },
-                        set: { settings.windowClockDirection = $0 }
-                    )) {
-                        ForEach(WindowClockDirection.allCases) { direction in
-                            Text(direction.title).tag(direction)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .frame(width: SettingsLayout.controlWidth, alignment: .trailing)
-                    .disabled(!settings.isPanelVisible || !settings.showsWindowClock)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Forecast"),
-                    subtitle: String.localized("Whether each limit lasts its window, on the card.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.showsForecast },
-                        set: { settings.showsForecast = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Second limit inside the ring"),
-                    subtitle: String.localized("A thinner ring for the next-fullest limit, where a provider has one.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.showsSecondRing },
-                        set: { settings.showsSecondRing = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Show what's left"),
-                    subtitle: String.localized("Counts down instead of up, figure and ring together.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.showsRemaining },
-                        set: { settings.showsRemaining = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Figure above the ring"),
-                    subtitle: String.localized("Swaps the two, wherever the panel is.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.labelAboveRing },
-                        set: { settings.labelAboveRing = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(
-                        !settings.isPanelVisible
-                            // Nothing to swap when neither rail shows a figure.
-                            || (!settings.sideRailShowsPercentages && !settings.topRailShowsPercentages)
-                    )
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Percentages on top"),
-                    subtitle: String.localized("Only when the panel is docked to the top.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.topRailShowsPercentages },
-                        set: { settings.topRailShowsPercentages = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Turn red at"),
-                    subtitle: String.localized("Where a ring stops being amber. A spent limit is red whatever this says.")
-                ) {
-                    Picker(String.localized("Turn red at"), selection: Binding(
-                        get: { settings.warningThreshold },
-                        set: { settings.warningThreshold = $0 }
-                    )) {
-                        ForEach(WarningThreshold.allCases) { threshold in
-                            Text(threshold.title).tag(threshold)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Alert colour when docked"),
-                    subtitle: String.localized("Off keeps the collapsed rail neutral even when a limit needs attention.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.dockShowsAlertColor },
-                        set: { settings.dockShowsAlertColor = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("Ring activity animation"),
-                    subtitle: String.localized("The turning mark for a working CLI or a reading being fetched. Off leaves the ring still.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.animatesRingActivity },
-                        set: { settings.animatesRingActivity = $0 }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!settings.isPanelVisible)
-                }
-            }
-
-            SettingsGroup(String.localized("Notifications")) {
-                SettingsRow(
-                    String.localized("Warn at"),
-                    subtitle: alertsSubtitle
-                ) {
-                    Picker("", selection: Binding(
-                        get: { settings.alertThreshold },
-                        set: {
-                            settings.alertThreshold = $0
-                            Task {
-                                if await alerts.requestAuthorizationIfNeeded() {
-                                    store.reconsiderAlerts()
-                                }
-                            }
-                        }
-                    )) {
-                        ForEach(AlertThreshold.allCases) { threshold in
-                            Text(threshold.title).tag(threshold)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
-                    .disabled(!UsageAlerts.isSupported)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("When a limit comes back"),
-                    subtitle: String.localized("Only for one you were warned about.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.alertsOnReset },
-                        set: {
-                            settings.alertsOnReset = $0
-                            Task {
-                                if await alerts.requestAuthorizationIfNeeded() {
-                                    store.reconsiderAlerts()
-                                }
-                            }
-                        }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    // Nothing to fire about: a reset is only announced for a
-                    // window that was mentioned on the way up.
-                    .disabled(!UsageAlerts.isSupported || settings.alertThreshold == .off)
-                }
-
-                SettingsRowDivider()
-
-                SettingsRow(
-                    String.localized("When a reading stops arriving"),
-                    subtitle: String.localized("After several failed checks in a row, once per outage.")
-                ) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.alertsOnFailure },
-                        set: {
-                            settings.alertsOnFailure = $0
-                            Task {
-                                if await alerts.requestAuthorizationIfNeeded() {
-                                    store.reconsiderAlerts()
-                                }
-                            }
-                        }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .disabled(!UsageAlerts.isSupported)
-                }
-            }
-
-            SettingsGroup(String.localized("Refresh")) {
-                SettingsRow(
-                    String.localized("Check every"),
-                    subtitle: refreshSubtitle
-                ) {
-                    Picker("", selection: Binding(
-                        get: { settings.refreshInterval },
-                        set: { settings.refreshInterval = $0 }
-                    )) {
-                        ForEach(RefreshInterval.allCases) { interval in
-                            Text(interval.title).tag(interval)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
-                }
-            }
-
-            SettingsGroup(String.localized("Network")) {
-                SettingsRow(
-                    String.localized("Proxy"),
-                    subtitle: String.localized("Use macOS settings or a proxy only for Pulse.")
-                ) {
-                    Picker("", selection: Binding(
-                        get: { settings.networkProxy.mode },
-                        set: { mode in
-                            var proxy = settings.networkProxy
-                            proxy.mode = mode
-                            settings.networkProxy = proxy
-                            if mode == .system {
-                                proxyHostInvalid = false
-                                proxyPortInvalid = false
-                            }
-                        }
-                    )) {
-                        ForEach(NetworkProxyMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
-                }
-
-                if settings.networkProxy.mode == .manual {
-                    SettingsRowDivider()
-
-                    SettingsRow(String.localized("Type")) {
-                        Picker("", selection: Binding(
-                            get: { settings.networkProxy.kind },
-                            set: { kind in
-                                var proxy = settings.networkProxy
-                                proxy.kind = kind
-                                settings.networkProxy = proxy
-                            }
-                        )) {
-                            ForEach(NetworkProxyKind.allCases) { kind in
-                                Text(kind.title).tag(kind)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.segmented)
-                        .frame(width: SettingsLayout.controlWidth, alignment: .trailing)
-                    }
-
-                    SettingsRowDivider()
-
-                    SettingsRow(
-                        String.localized("Host"),
-                        subtitle: proxyHostInvalid
-                            ? String.localized("Enter a host.")
-                            : String.localized("The proxy server's name or address.")
-                    ) {
-                        TextField("", text: $proxyHost, prompt: Text(verbatim: "127.0.0.1"))
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: SettingsLayout.controlWidth)
-                            .focused($proxyField, equals: .host)
-                            .onSubmit { saveManualProxy() }
-                    }
-
-                    SettingsRowDivider()
-
-                    SettingsRow(
-                        String.localized("Port"),
-                        subtitle: proxyPortInvalid
-                            ? String.localized("Enter a whole number from 1 to 65535.")
-                            : String.localized("A number from 1 to 65535.")
-                    ) {
-                        TextField("", text: $proxyPort, prompt: Text(verbatim: "7897"))
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: SettingsLayout.controlWidth)
-                            .focused($proxyField, equals: .port)
-                            .onSubmit { saveManualProxy() }
-                    }
                 }
             }
 
@@ -1000,7 +863,13 @@ struct SettingsView: View {
                         .disabled(!settings.hasCustomOrder)
                 }
             }
+        }
+    }
 
+    /// Pulse as an app rather than as a panel: launch, menu bar, shortcuts,
+    /// language.
+    private var generalPane: some View {
+        VStack(alignment: .leading, spacing: 22) {
             SettingsGroup(String.localized("Application")) {
                 SettingsRow(
                     String.localized("Open at login"),
@@ -1095,6 +964,183 @@ struct SettingsView: View {
                     }
                     .labelsHidden()
                     .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private var notificationsPane: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsGroup {
+                SettingsRow(
+                    String.localized("Warn at"),
+                    subtitle: alertsSubtitle
+                ) {
+                    Picker("", selection: Binding(
+                        get: { settings.alertThreshold },
+                        set: {
+                            settings.alertThreshold = $0
+                            Task {
+                                if await alerts.requestAuthorizationIfNeeded() {
+                                    store.reconsiderAlerts()
+                                }
+                            }
+                        }
+                    )) {
+                        ForEach(AlertThreshold.allCases) { threshold in
+                            Text(threshold.title).tag(threshold)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                    .disabled(!UsageAlerts.isSupported)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("When a limit comes back"),
+                    subtitle: String.localized("Only for one you were warned about.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.alertsOnReset },
+                        set: {
+                            settings.alertsOnReset = $0
+                            Task {
+                                if await alerts.requestAuthorizationIfNeeded() {
+                                    store.reconsiderAlerts()
+                                }
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    // Nothing to fire about: a reset is only announced for a
+                    // window that was mentioned on the way up.
+                    .disabled(!UsageAlerts.isSupported || settings.alertThreshold == .off)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("When a reading stops arriving"),
+                    subtitle: String.localized("After several failed checks in a row, once per outage.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.alertsOnFailure },
+                        set: {
+                            settings.alertsOnFailure = $0
+                            Task {
+                                if await alerts.requestAuthorizationIfNeeded() {
+                                    store.reconsiderAlerts()
+                                }
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!UsageAlerts.isSupported)
+                }
+            }
+        }
+    }
+
+    /// How often Pulse asks, and through what.
+    private var networkPane: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsGroup(String.localized("Refresh")) {
+                SettingsRow(
+                    String.localized("Check every"),
+                    subtitle: refreshSubtitle
+                ) {
+                    Picker("", selection: Binding(
+                        get: { settings.refreshInterval },
+                        set: { settings.refreshInterval = $0 }
+                    )) {
+                        ForEach(RefreshInterval.allCases) { interval in
+                            Text(interval.title).tag(interval)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                }
+            }
+
+            SettingsGroup(String.localized("Network")) {
+                SettingsRow(
+                    String.localized("Proxy"),
+                    subtitle: String.localized("Use macOS settings or a proxy only for Pulse.")
+                ) {
+                    Picker("", selection: Binding(
+                        get: { settings.networkProxy.mode },
+                        set: { mode in
+                            var proxy = settings.networkProxy
+                            proxy.mode = mode
+                            settings.networkProxy = proxy
+                            if mode == .system {
+                                proxyHostInvalid = false
+                                proxyPortInvalid = false
+                            }
+                        }
+                    )) {
+                        ForEach(NetworkProxyMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                }
+
+                if settings.networkProxy.mode == .manual {
+                    SettingsRowDivider()
+
+                    SettingsRow(String.localized("Type")) {
+                        Picker("", selection: Binding(
+                            get: { settings.networkProxy.kind },
+                            set: { kind in
+                                var proxy = settings.networkProxy
+                                proxy.kind = kind
+                                settings.networkProxy = proxy
+                            }
+                        )) {
+                            ForEach(NetworkProxyKind.allCases) { kind in
+                                Text(kind.title).tag(kind)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: SettingsLayout.controlWidth, alignment: .trailing)
+                    }
+
+                    SettingsRowDivider()
+
+                    SettingsRow(
+                        String.localized("Host"),
+                        subtitle: proxyHostInvalid
+                            ? String.localized("Enter a host.")
+                            : String.localized("The proxy server's name or address.")
+                    ) {
+                        TextField("", text: $proxyHost, prompt: Text(verbatim: "127.0.0.1"))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: SettingsLayout.controlWidth)
+                            .focused($proxyField, equals: .host)
+                            .onSubmit { saveManualProxy() }
+                    }
+
+                    SettingsRowDivider()
+
+                    SettingsRow(
+                        String.localized("Port"),
+                        subtitle: proxyPortInvalid
+                            ? String.localized("Enter a whole number from 1 to 65535.")
+                            : String.localized("A number from 1 to 65535.")
+                    ) {
+                        TextField("", text: $proxyPort, prompt: Text(verbatim: "7897"))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: SettingsLayout.controlWidth)
+                            .focused($proxyField, equals: .port)
+                            .onSubmit { saveManualProxy() }
+                    }
                 }
             }
         }
@@ -2533,7 +2579,7 @@ struct SettingsView: View {
                         Button(String.localized("Remove"), role: .destructive) {
                             AccountCredentialStore.set(nil, for: account)
                             settings.removeAccount(account)
-                            pane = .general
+                            pane = .appearance
                         }
                     }
                 }
@@ -2986,7 +3032,16 @@ struct SettingsView: View {
 }
 
 enum SettingsPane: Hashable {
+    /// The panel's own settings, split by what they are about. They were one
+    /// "General" pane of thirty-odd rows until that was too long to find
+    /// anything in.
+    case appearance
+    case rings
+    case placement
+    /// Pulse as an app: launch, menu bar, shortcuts, language.
     case general
+    case notifications
+    case network
     case account(AccountKey)
     /// Every agent's spending added up — a pane whose subject is not a
     /// provider, which is why it sits outside the accounts rather than inside
@@ -2995,9 +3050,20 @@ enum SettingsPane: Hashable {
     case about
     case integrations
 
+    /// The sidebar's fixed rows, section by section. `panel` and
+    /// `application` sit above the accounts; `trailing` below them.
+    static let panel: [SettingsPane] = [.appearance, .rings, .placement]
+    static let application: [SettingsPane] = [.general, .notifications, .network]
+    static let trailing: [SettingsPane] = [.integrations, .about]
+
     var title: String {
         switch self {
+        case .appearance: .localized("Appearance")
+        case .rings: .localized("Rings and figures")
+        case .placement: .localized("Position and behavior")
         case .general: .localized("General")
+        case .notifications: .localized("Notifications")
+        case .network: .localized("Network and refresh")
         // Not "Usage history", which is what a provider's own card is called.
         // Two panes with one name is two places to look for one thing.
         case .spend: .localized("Token spend")
@@ -3013,11 +3079,45 @@ enum SettingsPane: Hashable {
     /// use the provider's own mark instead.
     var symbol: String {
         switch self {
+        case .appearance: "paintpalette"
+        case .rings: "circle.dashed"
+        case .placement: "rectangle.righthalf.inset.filled"
         case .general: "slider.horizontal.3"
+        case .notifications: "bell"
+        case .network: "network"
         case .spend: "chart.bar"
         case .account: "square.stack.3d.up"
         case .about: "info.circle"
         case .integrations: "terminal"
+        }
+    }
+
+    /// The names of the settings on the pane, so the sidebar's search finds
+    /// the pane a setting is on. Only the panes whose rows are fixed; an
+    /// account is found by its name.
+    var searchTerms: [String] {
+        switch self {
+        case .appearance:
+            [.localized("Size"), .localized("Spacing"), .localized("Round ends"),
+             .localized("Liquid Glass"), .localized("Transparency"), .localized("Ring activity animation")]
+        case .rings:
+            [.localized("Percentages at the side"), .localized("Percentages on top"),
+             .localized("Figure above the ring"), .localized("Show what's left"), .localized("Forecast"),
+             .localized("Second limit inside the ring"), .localized("Time until reset"),
+             .localized("Time ring direction"), .localized("Turn red at"), .localized("Alert colour when docked")]
+        case .placement:
+            [.localized("Show floating panel"), .localized("Hide in full screen"),
+             .localized("Hide until pointed at"), .localized("Position"),
+             .localized("Follow the active display"), .localized("Order")]
+        case .general:
+            [.localized("Open at login"), .localized("Hide menu bar icon"), .localized("Shortcuts"),
+             .localized("Interface language")]
+        case .notifications:
+            [.localized("Warn at"), .localized("When a limit comes back"), .localized("When a reading stops arriving")]
+        case .network:
+            [.localized("Check every"), .localized("Proxy")]
+        case .account, .spend, .about, .integrations:
+            []
         }
     }
 }
