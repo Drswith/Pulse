@@ -31,6 +31,8 @@ One rule for all of them rather than sound only for the consequential ones. macO
 
 **`Kind.topUp` is guarded by both, for the same reasons in a different currency.** V2EX's 加油包 is an allowance bought on top of the window's, with no expiry and no clock ([providers/v2ex.md](providers/v2ex.md)). Buying a second pack drops the fraction by well over forty points with nothing having turned over, and "this limit has reset" about a purchase is a notification for something that did not happen. And only V2EX's own `remaining_tokens` may say the pack is gone.
 
+**`Kind.credits` and `Kind.sharedCredits` reset only when the reset date moves.** Qoder's allowance is the plan plus any pack bought on top ([providers/qoder.md](providers/qoder.md)), so a purchase raises the limit and drops the fraction forty points with nothing turned over — the top-up case inside a figure that does also reset. The forty-point fall is not evidence for these kinds; a `nextResetAt` that moved forward is. A team pool, which states no reset, is therefore never announced as reset.
+
 ### Low balance is about money, not a share of anything
 
 `lowBalance` is the odd one, and it exists because DeepSeek does. Providers that sell prepaid credit report **no allowance**, so there is no percentage to put a threshold on — `alertThreshold` has nothing to act on and would stay silent while the account emptied. What there is to warn about is the money.

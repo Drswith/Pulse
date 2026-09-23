@@ -130,6 +130,28 @@ struct QoderParsingTests {
         #expect(QoderUsageService.windows(from: silent).first?.isExhausted == true)
     }
 
+    /// A pack bought on top raises the limit, and the fraction falls with
+    /// nothing reset. Only Qoder's reset date moving forward says it turned
+    /// over — otherwise a purchase would be announced as a reset.
+    @Test("A pack bought on top is not a reset")
+    func purchaseIsNotAReset() throws {
+        let before = Date(timeIntervalSince1970: 1_725_148_800)
+        let bought = QoderSnapshot(personal: .init(used: 450, limit: 2_500, remaining: 2_050),
+                                   shared: nil, resetsAt: before)
+        let window = try #require(QoderUsageService.windows(from: bought).first)
+        #expect(!window.hasTurnedOver(since: 0.9, resetsAt: before))
+
+        let team = QoderSnapshot(personal: .init(used: 0, limit: 10, remaining: 10),
+                                 shared: .init(used: 10, limit: 5_000, remaining: 4_990), resetsAt: nil)
+        let shared = try #require(QoderUsageService.windows(from: team).last)
+        #expect(!shared.hasTurnedOver(since: 0.9, resetsAt: nil))
+
+        let renewed = QoderSnapshot(personal: .init(used: 5, limit: 500, remaining: 495),
+                                    shared: nil, resetsAt: before.addingTimeInterval(30 * 86_400))
+        let next = try #require(QoderUsageService.windows(from: renewed).first)
+        #expect(next.hasTurnedOver(since: 0.9, resetsAt: before))
+    }
+
     // MARK: - Sites
 
     @Test("Each site asks its own host, and only its own")

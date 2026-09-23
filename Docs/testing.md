@@ -120,6 +120,10 @@ PULSE_BOT_PREVIEW=/path/to/existing/folder/bot-personalities.png swift test --fi
 
 **No network, no clock, no disk in a rule test.** `AlertMemory.alerts` takes `now` as an argument for exactly this reason. `UsageCache.init(file:)` takes a path for exactly this reason. Anything that has to reach for a real one is not a rule test.
 
+## CI compiles the tests with an older Swift
+
+A local `swift test` passing is not proof that CI's will compile. The `macos-26` runner's toolchain is older than a current Xcode, and it is stricter in places: it would not convert a `CGFloat` into a `Double` tuple element on assignment, which a local Swift 6.4 accepts, and that one line in `BotMarkContinuityTests` failed the 1.4.0 release at its test step (measured then). Write `CGFloat` ↔ `Double` conversions out in tests, as the app code already does.
+
 ## Two conventions
 
 **The executable target is tested directly** (`@testable import Pulse`), not through a library split. Pulse is one app, not a framework with an app on top; carving seventy-eight files into two targets to make them reachable would be a refactor in service of the test runner. SwiftPM has allowed this since Swift 5.5.

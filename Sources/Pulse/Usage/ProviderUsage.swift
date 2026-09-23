@@ -28,6 +28,13 @@ extension UsageWindow {
     /// shape bought in tokens: buying a second pack drops the fraction by
     /// forty points without any window having reset, and announcing that as a
     /// reset is a notification about something that did not happen.
+    ///
+    /// **Credits turn over only when the provider says so.** Qoder's allowance
+    /// is the plan *plus* any pack bought on top, so buying one raises the
+    /// limit and drops the fraction forty points with nothing reset — the
+    /// top-up case again, inside a figure that does also reset. A fall is
+    /// therefore not evidence for `.credits` or `.sharedCredits`; only a reset
+    /// time that moved forward is.
     func hasTurnedOver(since fraction: Double, resetsAt previous: Date?) -> Bool {
         guard kind != .balance, kind != .topUp else { return false }
         // A minute of slack: a reset time is often rounded, and a second of
@@ -35,6 +42,7 @@ extension UsageWindow {
         let movedOn = resetsAt.map { new in
             previous.map { new.timeIntervalSince($0) > 60 } ?? false
         } ?? false
+        if kind == .credits || kind == .sharedCredits { return movedOn }
         return movedOn || fraction - usedFraction >= 0.4
     }
 }

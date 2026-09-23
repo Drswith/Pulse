@@ -54,6 +54,8 @@ camelCase today; the snake_case of an earlier build (`total_quota.quota_summary.
 
 Both: fraction is `usedValue / limitValue` (not the rounded `usagePercentage`); `windowSeconds` is thirty days as a **sort key**, `reportsLength` false — a trial runs a fortnight and a plan a billing month, and the reply says neither. `isExhausted` follows Qoder's `remainingValue` when stated, else `used >= limit`.
 
+**A purchase is not a reset.** Buying a pack raises `limitValue` and drops the fraction with nothing turned over, so for these kinds `hasTurnedOver` accepts only a `nextResetAt` that moved forward, never the forty-point fall ([../notifications.md](../notifications.md)).
+
 **A limit of zero is not drawn.** No ring at 100% for an allowance never granted: a zero shared pool is a placeholder and is dropped, and a zero personal allowance with nothing else is `qoderNoCredits` — an answer, not an outage (`UsageAlerts.standing` → `.answered`).
 
 ## Unconfirmed
