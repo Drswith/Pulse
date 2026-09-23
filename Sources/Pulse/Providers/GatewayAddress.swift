@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Where a self-hosted gateway lives, as the reader typed it.
@@ -50,6 +51,21 @@ enum GatewayAddress {
 
         parts.path = root(of: parts.path, trimming: trimming) + path
         return parts.url
+    }
+
+    /// Which deployment and which key a reading came from, for the cache.
+    ///
+    /// The deployment is the gateway's root as it will actually be asked, so
+    /// `host`, `https://host/` and `https://host/v1` are one server; the key is
+    /// named by its SHA-256, never by itself — a different key on the same
+    /// server is a different account. Nil without a usable address or a key,
+    /// which never matches anything.
+    static func scope(of typed: String?, key: String?) -> UsageScope? {
+        guard let typed, let key, !key.isEmpty,
+              let root = url(from: typed, path: "", trimming: ["/v1"])
+        else { return nil }
+        let fingerprint = SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
+        return UsageScope(route: .endpoint, organization: root.absoluteString.lowercased(), identity: fingerprint)
     }
 
     /// Whether an address could be used at all, without naming a route.

@@ -22,7 +22,7 @@ Because the wait changes each pass, `scheduleNext` sets `Timer.scheduledTimer(..
 
 Signals (every one is a reason to wait **longer**, never shorter):
 
-- CLI transcript metadata (`AgentActivity.lastWrite`) — not a second file scan
+- CLI transcript metadata (`AgentActivity.lastWrite`) — not a second file scan. For ZCode it is the newest turn/model/tool event's own stamp, not the file's date: ZCode writes idle heartbeats into the same log, which held every provider at the floor while it was merely open
 - Whether reported `windows` actually moved (`observedAt` is ignored for this comparison or every fetch looks like a change)
 - Whether the rail was hovered (`noteLooked`)
 - Whether the panel is on screen
@@ -60,10 +60,10 @@ Disabled providers are not fetched by the loop, by opening their Settings pane, 
 
 - A window whose **reset time has passed is dropped**, not aged. If every window has reset, report the error.
 - 24h cap for windows that never say when they reset.
-- Missing credentials are **not** papered over (`.apiKeyMissing`, `.ollamaSessionMissing`, `.signedOut`, `.claudeDesktopNotSignedIn`, `.claudeDesktopKeyRefused`).
+- Missing credentials are **not** papered over (`.apiKeyMissing`, `.ollamaSessionMissing`, `.signedOut`, `.claudeDesktopNotSignedIn`, `.claudeDesktopKeyRefused`), and neither is a gateway with no usable address (`.serverAddressMissing`, `.serverAddressRefused`).
 - **The age rules are not only the read-back path's.** A `.live` reading can still be old: `observedAt` is when the *provider's* figures were taken, not when Pulse asked. `reconciled` now filters a **directly fetched** reading the same way it filters a restored one — a window whose reset has passed is dropped, and a reading past the 24h cap is refused — before it is banked or drawn. Devin is why: its figures come out of a row its own app writes at launch, so a fresh fetch every few minutes keeps returning the same morning-old stamp ([providers/devin.md](providers/devin.md)).
 - **A saved plan is banked even when it is stale.** Devin's comes out of the app's own persistent store rather than a request that can be repeated, so `reconciled` keeps it; it is date-stamped, and `--json` — which never fetches — reads only what is banked. Without that the panel would lose the last plan the app wrote once the fresh window passed.
-- **Routes that need not be one account — or one organization — do not share a fallback.** Devin's endpoint is organization-scoped while the row its app saved is keyed by a user id only, so even the same user can be two organizations' allowances. `ProviderUsage.requiresScopeMatch` is computed from the provider, and every fallback, every "newer reading wins" and every save agrees on a `UsageScope` of **route, organization and identity**; a missing organization or identity is never a wildcard. There is no hand-set flag for a return path to forget.
+- **Routes that need not be one account — or one organization — do not share a fallback.** Devin's endpoint is organization-scoped while the row its app saved is keyed by a user id only, so even the same user can be two organizations' allowances. `ProviderUsage.requiresScopeMatch` is computed from the provider, and every fallback, every "newer reading wins" and every save agrees on a `UsageScope` of **route, organization and identity**; a missing organization or identity is never a wildcard. There is no hand-set flag for a return path to forget. **sub2api and New API too**: every reading carries `GatewayAddress.scope(of:key:)` — the deployment's root as organization, the key's SHA-256 as identity — so pointing the account at another server, or another key on the same one, never leaves the old figures standing in for a failure there.
 - `.live` is not the same as “newest.” A route can mark a capture live for a few minutes while an earlier endpoint reading has a later `observedAt`. `reconciled` prefers the later stamp.
 - `UsageStore.start` paints the cache before the first request so the rail is not blank on a cold start. Cache never undoes a fetch that has already landed.
 

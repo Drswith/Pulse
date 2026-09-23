@@ -78,7 +78,7 @@ A deployment selling "credits" or "points" answers with a `unit` that is not an 
 
 ### Only rate limits have a clock
 
-`rate_limits[].window` is `5h` / `1d` / `7d` — a count and a unit, which is a **statement of the length** — and `reset_at` is a real reset. Those are the only windows here with `reportsLength` true. A label Pulse has no word for (`3h`) is read as `.other(seconds:)` rather than dropped.
+`rate_limits[].window` is `5h` / `1d` / `7d` — a count and a unit, which is a **statement of the length** — and `reset_at` is a real reset. Those are the only windows here with `reportsLength` true. A label Pulse has no word for (`3h`) is read as `.other(seconds:)` rather than dropped. `m` is **not** read: among hours and days it could be a minute or a month, and as minutes `1m` drew a sixty-second clock. `.other` is named in days only when it is a whole number of them (`36h` is a 36-hour limit, not two days).
 
 The quota and the subscription periods state neither. The subscription reply names daily, weekly and monthly counters and never says when any of them turns over, so their seconds are a sort key and nothing may be divided by them. See [`README.md`](README.md#windowseconds-is-not-evidence-of-a-reported-length).
 

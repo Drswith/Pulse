@@ -80,7 +80,19 @@ struct NewAPIUsageService: Sendable {
     /// `/v1`.
     private static let typedSuffixes = ["/v1"]
 
+    /// Every reading is stamped with the deployment and key it came from, so a
+    /// cached reading from another server or account never stands in for this
+    /// one's failure —
+    /// see `ProviderUsage.requiresScopeMatch`. Moving from one deployment to
+    /// another used to leave the old server's balance on the ring, marked
+    /// stale, for up to a day whenever the new one refused.
     func fetch() async -> ProviderUsage {
+        var usage = await read()
+        usage.sourceScope = GatewayAddress.scope(of: address, key: enteredKey)
+        return usage
+    }
+
+    private func read() async -> ProviderUsage {
         guard let key = enteredKey.flatMap({ $0.isEmpty ? nil : $0 }) else {
             return .unavailable(.newAPI, reason: .apiKeyMissing)
         }

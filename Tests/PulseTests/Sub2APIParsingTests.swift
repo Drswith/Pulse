@@ -165,7 +165,7 @@ struct Sub2APIParsingTests {
         #expect(Sub2APIUsageService.seconds(of: "5h") == 5 * 3_600)
         #expect(Sub2APIUsageService.seconds(of: "1d") == 86_400)
         #expect(Sub2APIUsageService.seconds(of: "7D") == 7 * 86_400)
-        #expect(Sub2APIUsageService.seconds(of: "30m") == 1_800)
+        #expect(Sub2APIUsageService.seconds(of: "30m") == nil, "m could be a minute or a month")
         #expect(Sub2APIUsageService.seconds(of: "week") == nil)
         #expect(Sub2APIUsageService.seconds(of: "0h") == nil)
         #expect(Sub2APIUsageService.kind(ofLength: 3 * 3_600) == .other(seconds: 3 * 3_600))

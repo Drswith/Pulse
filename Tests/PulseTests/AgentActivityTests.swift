@@ -160,7 +160,11 @@ struct AgentActivityTests {
         try FileManager.default.setAttributes([.modificationDate: Self.now], ofItemAtPath: log.path)
 
         #expect(AgentActivity.verdict(for: log, provider: .glmCoding) == .finished)
-        #expect(AgentActivity.states(for: [.glmCoding], now: Self.now, home: home)[.glmCoding]?.isWorking == false)
+        let state = AgentActivity.states(for: [.glmCoding], now: Self.now, home: home)[.glmCoding]
+        #expect(state?.isWorking == false)
+        // Nor as recent activity: that would hold every provider at the
+        // fastest refresh for as long as ZCode is open.
+        #expect(state?.lastWrite == nil)
     }
 
     @Test("ZCode activity is attributed only to the configured GLM storefront")

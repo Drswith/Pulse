@@ -78,7 +78,7 @@ enum AgentActivity {
         for provider in providers where provider.supportsLocalActivity {
             guard !Task.isCancelled else { break }
             let files = transcripts(for: provider, home: home)
-            var state = State(lastWrite: files.first?.modified, isWorking: false)
+            var state = State(lastWrite: lastActivity(in: files.first, provider: provider), isWorking: false)
 
             // Any live session counts: two terminals can be running at once,
             // and the newest file is not necessarily the busy one. The filter
@@ -313,6 +313,27 @@ enum AgentActivity {
 
         formatter.formatOptions = [.withInternetDateTime]
         return formatter.date(from: text)
+    }
+
+    /// When the agent last did something, as far as its newest file says.
+    ///
+    /// The file's own date for everything but ZCode, which also writes process
+    /// heartbeats into the log while it sits idle. That date fed the adaptive
+    /// refresh's "an agent was active" signal and the marks' quiet state, so
+    /// ZCode merely being open held every provider at the fastest refresh and
+    /// kept every mark awake. Its newest turn, model or tool event is used
+    /// instead, and a log of heartbeats alone is no activity at all.
+    private static func lastActivity(in file: (url: URL, modified: Date)?, provider: Provider) -> Date? {
+        guard let file else { return nil }
+        guard provider == .zai || provider == .glmCoding else { return file.modified }
+        for line in tail(of: file.url, limit: 2 * 1024 * 1024).reversed() {
+            guard let record = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+                  let event = record["event"] as? String, record["turnId"] != nil,
+                  event.hasPrefix("turn.") || event.hasPrefix("tool.") || event.hasPrefix("model.")
+            else { continue }
+            return stamp(of: record) ?? file.modified
+        }
+        return nil
     }
 
     /// The last stretch of a file, split into whole lines.

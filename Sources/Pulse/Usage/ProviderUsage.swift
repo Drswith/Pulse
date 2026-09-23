@@ -272,10 +272,13 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         case .messages: .localized("Message allowance")
         case .monthly: .localized("Monthly limit")
         case .topUp: .localized("Top-up pack")
+        // Days only when it is a whole number of them: rounded, 36 hours read
+        // as a two-day limit. Never below an hour, which is the finest unit
+        // anything here states.
         case .other(let seconds):
-            seconds >= 86_400
-                ? .localized("\("\(Int((Double(seconds) / 86_400).rounded()))")-day limit")
-                : .localized("\("\(Int((Double(seconds) / 3_600).rounded()))")-hour limit")
+            seconds >= 86_400 && seconds % 86_400 == 0
+                ? .localized("\("\(seconds / 86_400)")-day limit")
+                : .localized("\("\(max(Int((Double(seconds) / 3_600).rounded()), 1))")-hour limit")
         }
         let scoped = scope.map { "\(base) · \($0)" } ?? base
         return estimate.map { "\(scoped) · \($0.title)" } ?? scoped
@@ -641,7 +644,15 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
     /// that would have set it, so Devin was silently treated as shareable on
     /// exactly the paths that mattered. Devin's two routes can name different
     /// accounts and different organizations; every other provider's cannot.
-    var requiresScopeMatch: Bool { account.provider == .devin }
+    ///
+    /// The two gateways too: each reading is only as good as the server it was
+    /// read from, and the reader can point the account at another one.
+    var requiresScopeMatch: Bool {
+        switch account.provider {
+        case .devin, .sub2api, .newAPI: true
+        default: false
+        }
+    }
 
     /// Money the provider says is left, and what it is denominated in.
     struct CreditAmount: Equatable, Sendable {

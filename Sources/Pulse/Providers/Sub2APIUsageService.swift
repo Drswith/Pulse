@@ -43,7 +43,19 @@ struct Sub2APIUsageService: Sendable {
     /// server.
     let address: String?
 
+    /// Every reading is stamped with the deployment and key it came from, so a
+    /// cached reading from another server or account never stands in for this
+    /// one's failure —
+    /// see `ProviderUsage.requiresScopeMatch`. Moving from one deployment to
+    /// another used to leave the old server's balance on the ring, marked
+    /// stale, for up to a day whenever the new one refused.
     func fetch() async -> ProviderUsage {
+        var usage = await read()
+        usage.sourceScope = GatewayAddress.scope(of: address, key: enteredKey)
+        return usage
+    }
+
+    private func read() async -> ProviderUsage {
         guard let key = enteredKey.flatMap({ $0.isEmpty ? nil : $0 }) else {
             return .unavailable(.sub2api, reason: .apiKeyMissing)
         }
@@ -257,13 +269,16 @@ struct Sub2APIUsageService: Sendable {
 
     /// `5h` / `1d` / `7d` as seconds. A count and one of two units, so a
     /// deployment that reports `3h` is read rather than dropped.
+    ///
+    /// **Not `m`.** In a scheme of hours and days it could as well be a month
+    /// as a minute, and read as minutes a `1m` window drew a sixty-second
+    /// clock. A length Pulse cannot be sure of is not stated.
     static func seconds(of window: String) -> Int? {
         let text = window.lowercased()
         guard let unit = text.last, let count = Int(text.dropLast()), count > 0 else { return nil }
         switch unit {
         case "h": return count * 3_600
         case "d": return count * 86_400
-        case "m": return count * 60
         default: return nil
         }
     }

@@ -106,4 +106,13 @@ struct ProjectIdentityTests {
         #expect(UsageProject.displayName(for: b, among: [a, b]) == "client-b/service/api")
         #expect(UsageProject.displayName(for: a, among: [a]) == "api")
     }
+
+    @Test("A remote workspace URI is named by its last folder and kept whole as its identity")
+    func remoteWorkspaceName() {
+        let one = UsageProject("vscode-remote://ssh-remote%2Bhost-a/home/me/proj")
+        let two = UsageProject("vscode-remote://ssh-remote%2Bhost-b/home/me/proj")
+        #expect(one?.name == "proj")
+        #expect(one?.identity == .label("vscode-remote://ssh-remote%2Bhost-a/home/me/proj"))
+        #expect(one != two)
+    }
 }

@@ -23,7 +23,16 @@ struct UsageProject: Hashable, Codable, Sendable {
             name = parts.last.map(String.init) ?? "/"
         } else {
             identity = .label(value)
-            name = value
+            // A workspace URI that is not a local path — VS Code's Remote-SSH
+            // `vscode-remote://ssh-remote%2Bhost/home/me/proj` — is still one
+            // project, named by its last folder; the whole URI stays its
+            // identity, so the same folder on two hosts is not merged.
+            if value.contains("://"), let url = URL(string: value),
+               !url.lastPathComponent.isEmpty, url.lastPathComponent != "/" {
+                name = url.lastPathComponent
+            } else {
+                name = value
+            }
         }
     }
 
