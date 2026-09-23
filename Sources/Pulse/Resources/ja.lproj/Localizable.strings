@@ -632,3 +632,13 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "設定で読み込んだブラウザのログインセッションを使います。読み込み時にブラウザのキーチェーンへのアクセスを求めることがあります。";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "設定で連携した GitHub のログインを使います。キーチェーンの確認はありません。";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "設定で入力した API キーだけを使います。キーチェーンの確認はありません。";
+"Top-up pack" = "追加パック";
+"Server address" = "サーバーのアドレス";
+"Edit address" = "アドレスを編集";
+"Add the server address in Settings." = "設定でサーバーのアドレスを入力してください。";
+"That address can't be used. It needs https://, unless the server is on your own network." = "このアドレスは使えません。サーバーが自分のネットワーク内にある場合を除き、https:// が必要です。";
+"Sends the key you enter only to the server address you enter. No Keychain prompt." = "入力したキーは、入力したサーバーのアドレスにだけ送られます。キーチェーンの確認はありません。";
+"A group API key from your sub2api deployment. Sent only to the address above. Stored encrypted on this Mac." = "あなたの sub2api のグループ API キーです。上のアドレスにだけ送られます。この Mac に暗号化して保存されます。";
+"A Personal Access Token from v2ex.com. Stored encrypted on this Mac." = "v2ex.com で発行した Personal Access Token です。この Mac に暗号化して保存されます。";
+"Your own deployment's address, such as https://gateway.example.com. Pulse asks it for usage and sends nothing else." = "あなた自身のゲートウェイのアドレスです。例: https://gateway.example.com。Pulse は使用状況を尋ねるだけで、ほかには何も送りません。";
+"The same key your AI client uses for this gateway. Sent only to the address above. Stored encrypted on this Mac." = "この ゲートウェイ に AI クライアントが使っているのと同じキーです。上のアドレスにだけ送られます。この Mac に暗号化して保存されます。";

@@ -32,7 +32,7 @@ Signals (every one is a reason to wait **longer**, never shorter):
 
 Every signal above is local, which is the module's whole advantage — Pulse can see an agent working without asking anyone's server. It also means a provider billed entirely on **its own** servers is invisible to all three activity signals and lands on the ceiling every time. That is circular: it waits half an hour because nothing changed, and nothing appears to have changed because it waited half an hour. For prepaid credit draining towards zero — DeepSeek, Command Code — being half an hour late is the one case where it costs something.
 
-So `AdaptiveRefresh.interval(for:isWatched:)` caps those at `unwatchedCeiling` (300s). `Provider.spendingIsWatchedLocally` is the flag, and it is the inverse of `reportsSpendableBalance`.
+So `AdaptiveRefresh.interval(for:isWatched:)` caps those at `unwatchedCeiling` (300s). `Provider.spendingIsWatchedLocally` is the flag. It is the inverse of `reportsSpendableBalance` **plus V2EX**, which the money test cannot see: its allowance is counted in tokens rather than currency, it is spent in a browser on somebody else's site, and its five-hour window does not turn over on a clock — V2EX starts one when a message arrives there ([providers/v2ex.md](providers/v2ex.md)). Inheriting `true` from a test about currency would leave it half an hour behind a window it never saw start.
 
 The cap **only ever lowers** a wait the ladder already decided, which keeps the module's rule intact: no signal here may make anything wait longer. And it is beaten by the two short-circuits above it — a constrained Mac and a hidden panel — because those are statements about *this machine*, not about the provider.
 

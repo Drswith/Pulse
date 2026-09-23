@@ -21,12 +21,15 @@ extension UsageWindow {
     /// has moved forward is the provider saying so; a fraction that has
     /// dropped forty points has not slid, it has turned over.
     ///
-    /// **Never for a balance.** `Kind.balance` is prepaid credit and not a
-    /// limit: there is no window to turn over, `resetsAt` is always nil, and on
-    /// DeepSeek the fraction is a *setting* — so the test would fire when
-    /// somebody moved a picker.
+    /// **Never for a balance or a top-up pack.** `Kind.balance` is prepaid
+    /// credit and not a limit: there is no window to turn over, `resetsAt` is
+    /// always nil, and on DeepSeek the fraction is a *setting* — so the test
+    /// would fire when somebody moved a picker. `Kind.topUp` is the same
+    /// shape bought in tokens: buying a second pack drops the fraction by
+    /// forty points without any window having reset, and announcing that as a
+    /// reset is a notification about something that did not happen.
     func hasTurnedOver(since fraction: Double, resetsAt previous: Date?) -> Bool {
-        guard kind != .balance else { return false }
+        guard kind != .balance, kind != .topUp else { return false }
         // A minute of slack: a reset time is often rounded, and a second of
         // jitter is not a new window.
         let movedOn = resetsAt.map { new in
@@ -64,6 +67,17 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         /// OpenCode Go's billing period. The others' longest window is a
         /// week, so this one had nowhere to map.
         case monthly
+        /// An allowance bought on top of a window's, which is spent only once
+        /// that window's is gone and which **never expires**. V2EX's
+        /// `extra_usage` is the first: a pack of tokens with a stated size and
+        /// a stated amount used, no reset, no length, and no clock.
+        ///
+        /// Its own kind rather than `.balance`, which is money, and rather
+        /// than `.messages`, which is Devin's count of messages — the name
+        /// would be wrong on the card either way. And **not** a window: a pack
+        /// that is topped up has not turned over, which is why
+        /// `hasTurnedOver` excludes it alongside `.balance`.
+        case topUp
         case other(seconds: Int)
     }
 
@@ -257,6 +271,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         case .daily: .localized("Daily limit")
         case .messages: .localized("Message allowance")
         case .monthly: .localized("Monthly limit")
+        case .topUp: .localized("Top-up pack")
         case .other(let seconds):
             seconds >= 86_400
                 ? .localized("\("\(Int((Double(seconds) / 86_400).rounded()))")-day limit")
@@ -497,6 +512,19 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
         /// buys tokens by the yuan instead. A complete answer, not a fault,
         /// and the same distinction `zaiNoCodingPlan` exists for.
         case xiaomiNoCodingPlan
+        /// A provider whose address is the reader's own has not been given
+        /// one. Separate from a missing key because they are two fields and
+        /// two steps, and "add an API key" about the one that already has a
+        /// key sends people to re-paste what already works.
+        ///
+        /// **Names no provider**, so a second self-hosted service can share
+        /// it — the rule the rest of this enum was fixed for once already.
+        case serverAddressMissing
+        /// There is an address and Pulse will not send a key to it: not a URL,
+        /// or plain http to a host out on the internet. Refused rather than
+        /// quietly rewritten, because an address silently changed is a
+        /// credential going somewhere nobody looked.
+        case serverAddressRefused
         /// No key has been entered for a provider that needs one.
         case apiKeyMissing
         /// There is a key, and the service refused it.
@@ -544,6 +572,8 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
             case .devinAppMissing: .localized("Devin isn't installed.")
             case .devinPlanUnread: .localized("Open Devin and sign in, so it can record your plan.")
             case .devinOrganizationMissing: .localized("Add your Devin organization after the token, separated by a space.")
+            case .serverAddressMissing: .localized("Add the server address in Settings.")
+            case .serverAddressRefused: .localized("That address can't be used. It needs https://, unless the server is on your own network.")
             case .apiKeyMissing: .localized("Add an API key in Settings.")
             case .apiKeyRefused: .localized("That key was refused. Check it in Settings.")
             case .unreachable: .localized("The service didn't respond.")

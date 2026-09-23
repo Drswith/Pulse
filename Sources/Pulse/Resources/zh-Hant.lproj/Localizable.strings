@@ -632,3 +632,13 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "使用你在設定中匯入的瀏覽器登入工作階段。匯入時可能要求瀏覽器的鑰匙圈存取權限。";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "使用你在設定中連結的 GitHub 登入。不會出現鑰匙圈提示。";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "只使用你在設定中輸入的 API 金鑰。不會出現鑰匙圈提示。";
+"Top-up pack" = "加購包";
+"Server address" = "伺服器位址";
+"Edit address" = "編輯位址";
+"Add the server address in Settings." = "請在設定裡填入伺服器位址。";
+"That address can't be used. It needs https://, unless the server is on your own network." = "這個位址不能使用。除非伺服器在你自己的網路裡，否則要用 https://。";
+"Sends the key you enter only to the server address you enter. No Keychain prompt." = "只把你輸入的金鑰送到你輸入的那個伺服器位址。不會出現鑰匙圈提示。";
+"A group API key from your sub2api deployment. Sent only to the address above. Stored encrypted on this Mac." = "你那台 sub2api 上的群組 API 金鑰。只會送到上面那個位址。加密儲存在本機。";
+"A Personal Access Token from v2ex.com. Stored encrypted on this Mac." = "在 v2ex.com 產生的個人存取權杖。加密儲存在本機。";
+"Your own deployment's address, such as https://gateway.example.com. Pulse asks it for usage and sends nothing else." = "你自己那台閘道的位址，例如 https://gateway.example.com。Pulse 只向它查用量，其他什麼都不會送出。";
+"The same key your AI client uses for this gateway. Sent only to the address above. Stored encrypted on this Mac." = "你的 AI 用戶端連這台閘道用的那個金鑰。只會送到上面那個位址。加密儲存在本機。";

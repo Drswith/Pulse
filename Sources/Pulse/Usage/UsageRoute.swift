@@ -38,7 +38,8 @@ enum UsageRoute: String, Codable, Sendable {
         case .ollamaCloud, .xiaomiMiMo: return .webSession
         case .kiro: return .kiroACP
         case .cursor, .openCodeGo, .kimiCode, .zai, .glmCoding, .minimax,
-             .minimaxCN, .copilot, .grok, .grokBot, .commandCode, .deepSeek:
+             .minimaxCN, .copilot, .grok, .grokBot, .commandCode, .deepSeek,
+             .sub2api, .newAPI, .v2ex:
             return .endpoint
         }
     }

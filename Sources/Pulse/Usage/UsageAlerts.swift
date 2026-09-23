@@ -353,10 +353,14 @@ struct AlertMemory: Codable, Sendable, Equatable {
         // is spent, which is what the provider's own doc promises, and this is
         // where that promise is kept: a ¥100 full-tank with the balance at zero
         // announced "This limit is spent" while the account could still pay.
+        // A top-up pack joins the balance here for the same reason: it is
+        // prepaid rather than granted, its fraction moves when a pack is
+        // bought, and nothing but the provider's own word may call it spent.
         let reached = window.isExhausted
             ? 100
-            : (window.kind == .balance ? min(99, Int((window.usedFraction * 100).rounded(.down)))
-                                       : Int((window.usedFraction * 100).rounded(.down)))
+            : (window.kind == .balance || window.kind == .topUp
+                ? min(99, Int((window.usedFraction * 100).rounded(.down)))
+                : Int((window.usedFraction * 100).rounded(.down)))
         if reached >= 100 { return 100 }
         if let percent = threshold.percent, reached >= percent { return percent }
         return nil
@@ -421,7 +425,12 @@ struct AlertMemory: Codable, Sendable, Equatable {
              // An app that was never installed or never signed in, which is
              // the same standing as a CLI that is not there: true until
              // somebody does something, and not an outage to announce.
-             .devinAppMissing, .devinPlanUnread, .devinOrganizationMissing:
+             .devinAppMissing, .devinPlanUnread, .devinOrganizationMissing,
+             // A self-hosted service with no address yet, or one whose address
+             // Pulse will not send a key to. Both are setup steps nobody has
+             // finished, and neither is evidence about whether anything can be
+             // reached — nothing was ever asked.
+             .serverAddressMissing, .serverAddressRefused:
             .neutral
         }
     }

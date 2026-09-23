@@ -118,6 +118,27 @@ final class AppSettings {
         }
     }
 
+    /// Where Pulse sends a self-hosted gateway's request, per account.
+    ///
+    /// sub2api and New API are somebody's own deployments, so unlike every
+    /// other provider here there is no address to ship: these are typed.
+    /// Stored as the reader wrote it and checked on the way out
+    /// (`GatewayAddress`), so a half-typed address never becomes a request and
+    /// is never quietly rewritten into one. Empty until they say.
+    ///
+    /// **Keyed by account id, like `sources` and `sessionBrowsers`**, rather
+    /// than a scalar per provider. It was a scalar while sub2api was the only
+    /// one; a second gateway turned "the address" into "*whose* address", and
+    /// a shape that cannot hold two is the shape that quietly gives one
+    /// provider the other's host.
+    var serverAddresses: [String: String] {
+        didSet {
+            guard serverAddresses != oldValue else { return }
+            UserDefaults.standard.set(serverAddresses, forKey: Key.serverAddresses)
+            onChange?()
+        }
+    }
+
     /// Warn when a prepaid balance falls below this much, per account.
     ///
     /// Empty is off, which is how it ships — the same rule every other alert
@@ -929,6 +950,7 @@ final class AppSettings {
         deepSeekBasis: DeepSeekBasis = .default,
         deepSeekBudget: Double? = nil,
         deepSeekCurrency: String? = nil,
+        serverAddresses: [String: String] = [:],
         lowBalanceAlerts: [String: Double] = [:],
         enabledAccounts: Set<String> = Set(Provider.allCases.map(\.rawValue)),
         extraAccounts: [ExtraAccount] = [],
@@ -976,6 +998,7 @@ final class AppSettings {
         self.deepSeekBasis = deepSeekBasis
         self.deepSeekBudget = deepSeekBudget
         self.deepSeekCurrency = deepSeekCurrency
+        self.serverAddresses = serverAddresses
         self.lowBalanceAlerts = lowBalanceAlerts
         self.enabledAccounts = enabledAccounts
         self.extraAccounts = extraAccounts
@@ -1140,6 +1163,20 @@ final class AppSettings {
         sessionBrowsers = updated
     }
 
+    /// The gateway address entered for an account, trimmed, or empty.
+    func serverAddress(for account: AccountKey) -> String {
+        (serverAddresses[account.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Blank removes the entry rather than storing an empty string, so the
+    /// stored dictionary carries only addresses somebody actually set.
+    func setServerAddress(_ address: String, for account: AccountKey) {
+        var updated = serverAddresses
+        let trimmed = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        updated[account.id] = trimmed.isEmpty ? nil : trimmed
+        serverAddresses = updated
+    }
+
     /// The window pinned for an account, if any.
     func pinnedWindow(for account: AccountKey) -> String? {
         pinnedWindows[account.id]
@@ -1239,6 +1276,7 @@ final class AppSettings {
                 .flatMap(DeepSeekBasis.init(rawValue:)) ?? .default,
             deepSeekBudget: defaults.object(forKey: Key.deepSeekBudget) as? Double,
             deepSeekCurrency: defaults.string(forKey: Key.deepSeekCurrency),
+            serverAddresses: defaults.dictionary(forKey: Key.serverAddresses) as? [String: String] ?? [:],
             lowBalanceAlerts: defaults.dictionary(forKey: Key.lowBalanceAlerts) as? [String: Double] ?? [:],
             enabledAccounts: selection.enabledAccounts,
             extraAccounts: extras,
@@ -1365,6 +1403,7 @@ final class AppSettings {
         static let deepSeekBasis = "settings.deepSeekBasis"
         static let deepSeekBudget = "settings.deepSeekBudget"
         static let deepSeekCurrency = "settings.deepSeekCurrency"
+        static let serverAddresses = "settings.serverAddresses"
         static let lowBalanceAlerts = "settings.lowBalanceAlerts"
         static let language = "settings.language"
         static let pinnedWindows = "settings.pinnedWindows"

@@ -4,6 +4,11 @@ import Foundation
 enum ConnectionRemedy: Equatable {
     case signIn
     case editCredential
+    /// The server address, for a provider whose address is the reader's own.
+    /// Its own remedy rather than `editCredential`, which focuses the key
+    /// field — a button saying "Edit credential" under a message about an
+    /// address is a control pointing at the wrong row.
+    case editAddress
     case readBrowser
     case connectStatusLine
     case openApp(String)
@@ -34,6 +39,7 @@ enum ConnectionRemedy: Equatable {
         case .devinAppMissing, .devinPlanUnread: return .openApp("Devin")
         case .notSignedIn, .signedOut: return .signIn
         case .apiKeyMissing, .apiKeyRefused, .devinOrganizationMissing: return .editCredential
+        case .serverAddressMissing, .serverAddressRefused: return .editAddress
         case .ollamaSessionMissing, .ollamaSessionExpired,
              .xiaomiSessionMissing, .xiaomiSessionExpired: return .readBrowser
         case .claudeDesktopKeyRefused, .unreachable, .rateLimited, .serverError,
@@ -50,6 +56,7 @@ enum ConnectionRemedy: Equatable {
         switch self {
         case .signIn: .localized("Sign in again…")
         case .editCredential: .localized("Edit credential")
+        case .editAddress: .localized("Edit address")
         case .readBrowser: .localized("Read from browser")
         case .connectStatusLine: .localized("Connect status line")
         case .openApp(let name): .localized("Open \(name)")
@@ -79,6 +86,9 @@ enum ConnectionRemedy: Equatable {
         case .commandCode: "command-code"
         case .deepSeek: "deepseek"
         case .devin: "devin"
+        case .sub2api: "sub2api"
+        case .newAPI: "newapi"
+        case .v2ex: "v2ex"
         }
         return URL(string: "https://github.com/qunqin24/Pulse/blob/main/Docs/providers/\(page).md")!
     }

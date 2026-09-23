@@ -632,3 +632,13 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "설정에서 가져온 브라우저 로그인 세션을 사용합니다. 가져올 때 브라우저의 키체인 접근 권한을 요청할 수 있습니다.";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "설정에서 연결한 GitHub 로그인을 사용합니다. 키체인 확인 창은 표시되지 않습니다.";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "설정에 입력한 API 키만 사용합니다. 키체인 확인 창은 표시되지 않습니다.";
+"Top-up pack" = "추가 팩";
+"Server address" = "서버 주소";
+"Edit address" = "주소 편집";
+"Add the server address in Settings." = "설정에서 서버 주소를 입력하십시오.";
+"That address can't be used. It needs https://, unless the server is on your own network." = "이 주소는 사용할 수 없습니다. 서버가 내 네트워크 안에 있는 경우가 아니면 https:// 가 필요합니다.";
+"Sends the key you enter only to the server address you enter. No Keychain prompt." = "입력한 키를 입력한 서버 주소로만 보냅니다. 키체인 확인 창은 표시되지 않습니다.";
+"A group API key from your sub2api deployment. Sent only to the address above. Stored encrypted on this Mac." = "사용 중인 sub2api의 그룹 API 키입니다. 위에 입력한 주소로만 전송됩니다. 이 Mac에 암호화되어 저장됩니다.";
+"A Personal Access Token from v2ex.com. Stored encrypted on this Mac." = "v2ex.com에서 발급한 개인 액세스 토큰입니다. 이 Mac에 암호화되어 저장됩니다.";
+"Your own deployment's address, such as https://gateway.example.com. Pulse asks it for usage and sends nothing else." = "직접 운영하는 게이트웨이의 주소입니다. 예: https://gateway.example.com. Pulse는 사용량만 조회하고 그 밖에는 아무것도 보내지 않습니다.";
+"The same key your AI client uses for this gateway. Sent only to the address above. Stored encrypted on this Mac." = "AI 클라이언트가 이 게이트웨이에 사용하는 것과 같은 키입니다. 위에 입력한 주소로만 전송됩니다. 이 Mac에 암호화되어 저장됩니다.";

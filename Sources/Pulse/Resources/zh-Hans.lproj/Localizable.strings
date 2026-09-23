@@ -632,3 +632,13 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "使用你在设置里导入的浏览器登录会话。导入时可能请求浏览器的钥匙串授权。";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "使用你在设置里连接的 GitHub 登录。不弹钥匙串。";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "只使用你在设置里填入的 API key。不弹钥匙串。";
+"Top-up pack" = "加油包";
+"Server address" = "服务器地址";
+"Edit address" = "编辑地址";
+"Add the server address in Settings." = "在设置里填入服务器地址。";
+"That address can't be used. It needs https://, unless the server is on your own network." = "这个地址不能用。除非服务器在你自己的网络里，否则要用 https://。";
+"Sends the key you enter only to the server address you enter. No Keychain prompt." = "只把你填的 key 发到你填的那个服务器地址。不弹钥匙串。";
+"A group API key from your sub2api deployment. Sent only to the address above. Stored encrypted on this Mac." = "你那台 sub2api 上的分组 API key。只发到上面那个地址。加密保存在本机。";
+"A Personal Access Token from v2ex.com. Stored encrypted on this Mac." = "在 v2ex.com 生成的个人访问令牌。加密保存在本机。";
+"Your own deployment's address, such as https://gateway.example.com. Pulse asks it for usage and sends nothing else." = "你自己那台网关的地址，例如 https://gateway.example.com。Pulse 只向它查用量，别的什么都不发。";
+"The same key your AI client uses for this gateway. Sent only to the address above. Stored encrypted on this Mac." = "你的 AI 客户端连这台网关用的那个 key。只发到上面那个地址。加密保存在本机。";

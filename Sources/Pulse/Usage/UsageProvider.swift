@@ -26,6 +26,9 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     case deepSeek
     case devin
     case xiaomiMiMo
+    case sub2api
+    case newAPI
+    case v2ex
 
     var id: String { rawValue }
 
@@ -88,6 +91,22 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // denominator and the thing the buyer signed up for. "Xiaomi MiMo"
         // would name the platform and leave the two products sharing a row.
         case .xiaomiMiMo: "Xiaomi Coding Plan"
+        // The gateway's own name, lower case, as the project writes it. Not
+        // "Relay" or "中转站": those name the *kind* of thing, which would be
+        // the one row a second gateway could not be added beside — and the
+        // rule here is that a ring is named for the product behind it.
+        // The operator of somebody's deployment may never have said what it
+        // runs; the reply's own field names are what identify it.
+        case .sub2api: "sub2api"
+        // The project's own name, spaced as its README writes it. Not
+        // "NewAPI" and not "new-api", which are the repository and the Docker
+        // image rather than what the thing is called.
+        case .newAPI: "New API"
+        // The site, not "AI Chat". The allowance is granted to the V2EX
+        // account and sized from what that account has done there — years of
+        // top-ups, and a Solana balance — so it belongs to the membership
+        // rather than to a product bought separately.
+        case .v2ex: "V2EX"
         }
     }
 
@@ -129,6 +148,18 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // does not use; at ring size it reads as a shape rather than as words,
         // which is the trade for being the real mark.
         case .xiaomiMiMo: "xiaomimimo"
+        // The interlocking mark from the project's own logo, without the
+        // badge it is drawn on: a rounded square goes grey at ring size and
+        // the rail already sets every mark on the same ground.
+        case .sub2api: "sub2api"
+        // **The brand mark, not the one in New API's own web UI.** That one
+        // is the command-key glyph, which is exactly what Command Code's mark
+        // already is — two rings a reader could not tell apart, which is the
+        // one thing a rail of logos must not do. This is the project's own
+        // logo reduced to a monochrome outline: two crescents and the spark
+        // between them.
+        case .newAPI: "newapi"
+        case .v2ex: "v2ex"
         }
     }
 
@@ -148,7 +179,8 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // which is true today and better than a column of zeroes.
         case .kiro, .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
-             .volcengine, .commandCode, .deepSeek, .devin, .xiaomiMiMo: false
+             .volcengine, .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api,
+             .newAPI, .v2ex: false
         }
     }
 
@@ -161,7 +193,8 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .claudeCode, .codex, .kiro, .zai, .glmCoding: true
         case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .minimax, .minimaxCN, .copilot, .grok, .grokBot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo: false
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo,
+             .sub2api, .newAPI, .v2ex: false
         }
     }
 
@@ -208,7 +241,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .claudeCode, .codex, .volcengine, .devin: true
         case .kiro, .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
-             .commandCode, .deepSeek, .xiaomiMiMo: false
+             .commandCode, .deepSeek, .xiaomiMiMo, .sub2api, .newAPI, .v2ex: false
         }
     }
 
@@ -247,7 +280,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // about elsewhere, so there is nothing here to state.
         case .claudeCode, .codex, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo:
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI, .v2ex:
             nil
         }
     }
@@ -259,7 +292,8 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// anyone on the plan who doesn't run the CLI on this Mac.
     var usesAPIKey: Bool {
         [.openCodeGo, .kimiCode, .ollamaCloud, .zai, .glmCoding, .minimax, .minimaxCN, .volcengine,
-         .commandCode, .deepSeek, .devin, .xiaomiMiMo].contains(self)
+         .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI,
+         .v2ex].contains(self)
     }
 
     /// Whether this Mac can see the thing this provider is billing for.
@@ -269,7 +303,20 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// through an API on somebody else's servers: nothing local moves when it
     /// drains, so `AdaptiveRefresh`'s signals are blind to it and it would sit
     /// on the ceiling for ever. See `AdaptiveRefresh.unwatchedCeiling`.
-    var spendingIsWatchedLocally: Bool { !reportsSpendableBalance }
+    var spendingIsWatchedLocally: Bool {
+        // Money spent through an API on somebody else's servers: the shape
+        // this rule was written for.
+        if reportsSpendableBalance { return false }
+        // **V2EX is the exception the money test cannot see.** Its allowance
+        // is counted in tokens rather than in currency, so the test above says
+        // nothing about it — and it is spent in a browser on v2ex.com, which
+        // moves nothing on this Mac. Its window does not even turn over on a
+        // clock: V2EX starts one when a message arrives *there*. So neither
+        // half of "watched" holds, and inheriting `true` from a test about
+        // currency would leave it half an hour behind a window it never saw
+        // start. See `AdaptiveRefresh.unwatchedCeiling`.
+        return self != .v2ex
+    }
 
     /// Whether this provider reports a prepaid balance that can be compared
     /// against a figure — so a "warn me below" line is worth offering.
@@ -278,7 +325,24 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// a display string and Codex's is sometimes the word "Unlimited". This is
     /// the shorter list that also hands over `creditRemaining`, which is a
     /// number and a currency.
-    var reportsSpendableBalance: Bool { [.deepSeek, .commandCode].contains(self) }
+    /// sub2api joins them for its wallet groups, which are the same thing
+    /// under another name: money in an account, spent by the call, with no
+    /// allowance behind it. Its quota and subscription groups report no
+    /// wallet, and this asks about the provider rather than about one
+    /// reading — a group with no balance simply never hands one over.
+    var reportsSpendableBalance: Bool {
+        [.deepSeek, .commandCode, .sub2api, .newAPI].contains(self)
+    }
+
+    /// Whether this provider is somebody's own deployment, so Pulse has to be
+    /// **told where it is** before it can ask anything.
+    ///
+    /// The only two, and the reason `GatewayAddress` exists: every other
+    /// provider here ships its host, while these can be pointed at any machine
+    /// on the internet with a credential attached. What Settings draws an
+    /// address field for, and what `AppSettings.serverAddress(for:)` is keyed
+    /// by.
+    var usesServerAddress: Bool { [.sub2api, .newAPI].contains(self) }
 
     /// Whether the pasted credential is a **pair** rather than one token.
     ///

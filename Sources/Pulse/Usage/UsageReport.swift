@@ -192,6 +192,7 @@ enum UsageReport {
             case .daily: "daily"
             case .messages: "messages"
             case .monthly: "monthly"
+            case .topUp: "topUp"
             case .other(let seconds): "other:\(seconds)"
             }
         }

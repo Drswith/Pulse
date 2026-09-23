@@ -45,6 +45,11 @@ struct SettingsView: View {
     /// The budget being typed, kept as text so a half-entered number is not
     /// read as a denominator on every keystroke.
     @State private var deepSeekBudget = ""
+    /// A self-hosted gateway's address being typed, committed on Save rather
+    /// than on every keystroke — a half-typed host is a request nobody meant
+    /// to make.
+    @State private var serverAddress = ""
+    @State private var serverAddressInvalid = false
     /// Manual proxy fields are committed as one valid endpoint rather than on
     /// every keystroke.
     @State private var proxyHost = ""
@@ -81,8 +86,13 @@ struct SettingsView: View {
     /// The row a reorder drag is currently over, so it can say so.
     @State private var dropTarget: AccountKey?
     @FocusState private var credentialFocused: Bool
+    @FocusState private var addressFocused: Bool
     @State private var repairMessages: [String: String] = [:]
     @State private var connectionFocusRequest = 0
+    /// Separate from `connectionFocusRequest`, because the address and the key
+    /// are two fields and the remedy that sent the reader here named one of
+    /// them.
+    @State private var addressFocusRequest = 0
     /// Every agent's spending, for the pane that is not about one provider.
     /// Its own state rather than something derived from `ledgers`, which is
     /// filled one account at a time as their panes are opened.
@@ -289,6 +299,10 @@ struct SettingsView: View {
                 .onChange(of: connectionFocusRequest) {
                     proxy.scrollTo("connection", anchor: .top)
                     credentialFocused = true
+                }
+                .onChange(of: addressFocusRequest) {
+                    proxy.scrollTo("connection", anchor: .top)
+                    addressFocused = true
                 }
                 .onChange(of: navigation.requestID) { proxy.scrollTo("heading", anchor: .top) }
             }
@@ -1243,7 +1257,8 @@ struct SettingsView: View {
                 keep = { try? XiaomiMiMoCookie.normalize($0) }
             case .claudeCode, .codex, .kiro, .antigravity, .cursor, .openCodeGo,
                  .kimiCode, .zai, .glmCoding, .minimax, .minimaxCN, .copilot,
-                 .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin:
+                 .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin,
+                 .sub2api, .newAPI, .v2ex:
                 // Not session-based: `readSession` sends those to
                 // `readBrowserStorage` before it gets here.
                 return
@@ -1574,6 +1589,10 @@ struct SettingsView: View {
             // beside a ring that is measuring against it.
             if shown == .deepSeek {
                 deepSeekBudget = settings.deepSeekBudget.map { String($0) } ?? ""
+            }
+            if shown.usesServerAddress {
+                serverAddress = settings.serverAddress(for: account)
+                serverAddressInvalid = false
             }
             if shown.reportsSpendableBalance {
                 lowBalance = settings.lowBalanceAlert(for: AccountKey(shown)).map { String($0) } ?? ""
@@ -1956,6 +1975,56 @@ struct SettingsView: View {
         }
     }
 
+    /// Where a self-hosted gateway lives.
+    ///
+    /// The only addresses in the app a reader types, so the only ones that can
+    /// be wrong. Checked on Save rather than on every keystroke — `https://s`
+    /// is not a mistake, it is somebody halfway through a word — and a refusal
+    /// says what the rule is rather than just colouring the box.
+    private func serverAddressRow(for account: AccountKey) -> some View {
+        SettingsRow(
+            String.localized("Server address"),
+            subtitle: serverAddressInvalid
+                ? String.localized("That address can't be used. It needs https://, unless the server is on your own network.")
+                : String.localized("Your own deployment's address, such as https://gateway.example.com. Pulse asks it for usage and sends nothing else.")
+        ) {
+            HStack(spacing: 8) {
+                TextField("", text: $serverAddress)
+                    .focused($addressFocused)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: SettingsLayout.controlWidth)
+                    .onSubmit { saveServerAddress(for: account) }
+
+                Button(String.localized("Save")) { saveServerAddress(for: account) }
+                    .disabled(serverAddress == settings.serverAddress(for: account))
+            }
+        }
+    }
+
+    /// Blank clears it, which puts the pane back to asking for an address
+    /// rather than leaving a ring pointed at a server that is no longer there.
+    private func saveServerAddress(for account: AccountKey) {
+        let typed = serverAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else {
+            serverAddressInvalid = false
+            serverAddress = ""
+            settings.setServerAddress("", for: account)
+            store.refresh(account)
+            return
+        }
+        // The shared rule, not a provider's own: what makes an address usable
+        // is the same question for both gateways, and only the route after it
+        // differs.
+        guard GatewayAddress.isUsable(typed) else {
+            serverAddressInvalid = true
+            return
+        }
+        serverAddressInvalid = false
+        serverAddress = typed
+        settings.setServerAddress(typed, for: account)
+        store.refresh(account)
+    }
+
     private var deepSeekBudgetRow: some View {
         SettingsRow(
             String.localized("Full tank"),
@@ -2087,6 +2156,16 @@ struct SettingsView: View {
             .localized("From commandcode.ai. Optional — Pulse can use the login Command Code saved. Stored encrypted on this Mac.")
         case .deepSeek:
             .localized("From platform.deepseek.com. Stored encrypted on this Mac.")
+        // A group key from whoever runs the deployment, not an account
+        // password — and it is only ever sent to the address in the row above.
+        case .sub2api:
+            .localized("A group API key from your sub2api deployment. Sent only to the address above. Stored encrypted on this Mac.")
+        // The same `sk-` key already in the reader's client config — there is
+        // no second credential to go and find.
+        case .newAPI:
+            .localized("The same key your AI client uses for this gateway. Sent only to the address above. Stored encrypted on this Mac.")
+        case .v2ex:
+            .localized("A Personal Access Token from v2ex.com. Stored encrypted on this Mac.")
         // Two values in one field, because the quota path is scoped by an
         // organisation and nothing on this Mac carries one. Optional, like
         // Volcengine's: without it Pulse reads the plan Devin's own app saved.
@@ -2196,6 +2275,14 @@ struct SettingsView: View {
             // could not be configured from Settings by any means. A divider
             // where both are shown, and none where the picker was not.
             if account.provider.hasSourceChoice, account.provider.usesAPIKey {
+                SettingsRowDivider()
+            }
+
+            // **Above the key, because it is asked first.** Nothing can be
+            // sent anywhere until Pulse knows where, and a key field at the
+            // top of a pane for a self-hosted service is a step out of order.
+            if account.provider.usesServerAddress {
+                serverAddressRow(for: account)
                 SettingsRowDivider()
             }
 
@@ -2490,6 +2577,8 @@ struct SettingsView: View {
             else if !account.isPrimary { signIn(to: account.provider, replacing: account) }
         case .editCredential:
             connectionFocusRequest += 1
+        case .editAddress:
+            addressFocusRequest += 1
         case .readBrowser:
             readSession(for: account)
         case .connectStatusLine:
