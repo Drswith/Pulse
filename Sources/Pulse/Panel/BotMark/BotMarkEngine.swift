@@ -187,6 +187,19 @@ final class BotMarkEngine {
     private var pointerY = 0.0
     private var pointerTargetX = 0.0
     private var pointerTargetY = 0.0
+    /// How much this mark is attending to the pointer, 0 to 1.
+    ///
+    /// **A spring, not the boolean it comes from.** Watching the pointer
+    /// damps the mark's own gaze to a fifth and takes most of the
+    /// expression's glance back out — up to 76 units — and doing that in one
+    /// frame had every ring on the rail snap to the cursor together the
+    /// moment it arrived, like a switch rather than a look. Eased, the eyes
+    /// travel over in about 0.4s.
+    private var attention = BotMarkSpring(0)
+    /// When a pointer that has just arrived is first noticed. Each mark
+    /// waits its own short, random moment, so a rail of them turns one after
+    /// another instead of in unison. Nil while no pointer is present.
+    private var noticeAt: Double?
 
     init() {
         let blob = library.shape("blob")
@@ -442,6 +455,8 @@ final class BotMarkEngine {
             carryY.step(frequency: 12, damping: 1, delta: step)
             carryDegrees.step(frequency: 12, damping: 1, delta: step)
             carryTurn.step(frequency: 12, damping: 1, delta: step)
+            // Critically damped, about 0.4s to settle: a look, not a snap.
+            attention.step(frequency: 11, damping: 1, delta: step)
         }
     }
 
@@ -1330,7 +1345,18 @@ final class BotMarkEngine {
             ? BotMath.clamp((distance - 5) / (leftHalf + rightHalf), 0.35, 4)
             : 4
 
-        if config.pointer, let pointer {
+        // Noticed after a moment of this mark's own, then attended to
+        // gradually — see `attention`. Leaving needs no delay: the eyes
+        // simply ease back.
+        if config.pointer, pointer != nil {
+            if noticeAt == nil { noticeAt = now + BotMath.random(50, 250) }
+        } else {
+            noticeAt = nil
+        }
+        let noticed = noticeAt.map { now >= $0 } ?? false
+        attention.target = noticed ? 1 : 0
+
+        if noticed, let pointer {
             // Not turned around with the gaze: the pointer is a real place on
             // the screen, and the eyes follow it there whichever way the mark
             // is facing.
@@ -1390,8 +1416,8 @@ final class BotMarkEngine {
             // the expression's built-in glance reaches 76, against a pointer
             // worth 22 — a rail on the right-hand edge kept staring left with
             // the cursor sitting on its right, which is not watching anything.
-            let watching = config.pointer && pointer != nil
-            let autonomousGazeWeight = watching ? 0.2 : 1.0
+            let focus = BotMath.clamp(attention.value, 0, 1)
+            let autonomousGazeWeight = 1 - 0.8 * focus
 
             // **Only the gaze turns round, not the mark.** Mirroring the
             // whole drawing aimed the eyes correctly and looked absurd: the
@@ -1416,7 +1442,7 @@ final class BotMarkEngine {
             // still look sad, and straightening the pair completely would
             // make every expression's eyes sit in the same place.
             driftX -= pairOffset * (1 - autonomousGazeWeight)
-            driftX += pointerX
+            driftX += pointerX * focus
 
             // **The gaze rides inside the face; it does not push past it.**
             // The expression is already looking somewhere — up to `eyeReach`
@@ -1430,7 +1456,7 @@ final class BotMarkEngine {
             // restricted — only leaving the face is.
             let reach = library.eyeReach
             driftX = BotMath.clamp(pairOffset + driftX, -reach, reach) - pairOffset
-            driftY += pointerY + aimY.value * autonomousGazeWeight + directGazeY
+            driftY += pointerY * focus + aimY.value * autonomousGazeWeight + directGazeY
             let notification = BotMath.clamp(notify.value, 0, 1)
             driftX -= 10 * notification
             driftY += 7 * notification
