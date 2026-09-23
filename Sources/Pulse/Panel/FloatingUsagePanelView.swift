@@ -143,7 +143,7 @@ struct FloatingUsagePanelView: View {
                 // drag: the card closes, and the rail then chases the pointer
                 // on a spring instead of staying under it. The panel appears
                 // to slide away from the hand carrying it.
-                .animation(.spring(response: 0.34, dampingFraction: 0.82), value: selectedSlot)
+                .animation(.spring(response: 0.28, dampingFraction: 0.84), value: selectedSlot)
                 // The berth growing out of the sliver and back. **Here, on the
                 // thing that actually changes size** — not on the container
                 // outside, which is where it was and which also holds the
