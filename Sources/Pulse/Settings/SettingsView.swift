@@ -487,6 +487,28 @@ struct SettingsView: View {
                     .disabled(!settings.isPanelVisible)
                 }
 
+                // Only while glass is on: it is how clear the glass is, and on
+                // the black panel there is no glass to be clear.
+                if settings.usesGlass {
+                    SettingsRowDivider()
+
+                    SettingsRow(
+                        String.localized("Transparency"),
+                        subtitle: String.localized("Clearer to the right. Darker reads better over bright pages.")
+                    ) {
+                        Slider(
+                            value: Binding(
+                                get: { settings.glassTransparency },
+                                set: { settings.glassTransparency = $0 }
+                            ),
+                            in: 0...1
+                        )
+                        .labelsHidden()
+                        .frame(width: SettingsLayout.controlWidth)
+                        .disabled(!settings.isPanelVisible)
+                    }
+                }
+
                 SettingsRowDivider()
 
                 SettingsRow(
@@ -1151,7 +1173,7 @@ struct SettingsView: View {
 
     /// The catch only applies while it is on, so it is only said then.
     private var glassSubtitle: String {
-        let base = String.localized("Frosted glass instead of solid black.")
+        let base = String.localized("Clear glass that shows what is behind the panel, instead of solid black.")
         guard settings.usesGlass else { return base }
         // A full stop in Chinese is full-width and carries its own trailing
         // space; adding another leaves a visible gap mid-sentence.

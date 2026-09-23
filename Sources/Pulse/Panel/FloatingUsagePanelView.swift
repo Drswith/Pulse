@@ -31,9 +31,6 @@ struct FloatingUsagePanelView: View {
     /// the arc a tenth of the way round at a time. A minute is far finer than
     /// anything visible on a 48pt circle and costs one view invalidation.
     @State private var minute = Date()
-    /// What the system is set to, so glass can follow it instead of being
-    /// pinned to the panel's own dark.
-    @Environment(\.colorScheme) private var colorScheme
 
 
     var body: some View {
@@ -203,17 +200,20 @@ struct FloatingUsagePanelView: View {
                     try? await Task.sleep(for: .seconds(60))
                 }
             }
-            // Pinned dark only on the black panel, and pinned through the
+            // Pinned dark on both surfaces, and pinned through the
             // *environment* rather than `preferredColorScheme` — the latter is
             // a window-wide preference, not a view-level override, so it can't
             // express "this subtree is dark".
             //
-            // Liquid Glass switches between light and dark itself to stay
-            // legible against whatever is behind it, so under glass nothing is
-            // pinned: the standard `.primary` colours the panel is drawn in
-            // follow the appearance the material settled on. Forcing dark is
-            // exactly what leaves white text sitting on bright glass.
-            .environment(\.colorScheme, settings.usesGlass ? colorScheme : .dark)
+            // Under glass too, now that the glass is really clear (see
+            // `FloatingPanel`'s active-appearance override). Clear glass takes
+            // on whatever is behind it — white over a white page, black over a
+            // terminal — so no single text colour survives on it alone; white
+            // over `PanelGlass.dim` does, which is Apple's own answer for the clear
+            // variant. Following the system scheme instead left dark text
+            // vanishing over dark windows.
+            .environment(\.colorScheme, .dark)
+            .environment(\.glassTransparency, settings.glassTransparency)
             // Where red begins, for every ring, bar and figure below here at
             // once. Read off `settings` in one place so they cannot disagree.
             .environment(\.usageWarningThreshold, settings.warningThreshold.fraction)

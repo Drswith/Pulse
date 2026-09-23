@@ -20,6 +20,8 @@ Settings stays reachable after dismissing the initial chooser. General points to
 
 A joined sentence needs no extra space after a Chinese full stop (`。`). `glassSubtitle` only inserts a separator when the first half does not end in one.
 
+While Liquid Glass is on, a **Transparency** slider appears under it (`glassTransparency`, 0–1, default 0.5): right is clearer, left dims the glass. It sets no `onChange` — that refetches every provider, and a slider fires continuously. Named Liquid Glass in every language (zh-Hans 液态玻璃); it was briefly 毛玻璃 while the panel rendered glass inactive and it really was frosted ([../decisions/liquid-glass.md](../decisions/liquid-glass.md)).
+
 While Liquid Glass is on, the caption still says to drag the panel by a ring. That is current UI. The historical “glass swallows input” diagnosis is uncertain; [rings-and-surface.md](rings-and-surface.md).
 
 Group order in the general pane: **Floating panel → Notifications → Refresh → Network → Order → Application → Shortcuts → Language**. The groups that decide what Pulse does *on its own* sit directly under the panel group, above the housekeeping ones. Notifications was added at the bottom, between Refresh and Language, and that was too far down to find — the panel group alone is nineteen rows. Network follows Refresh because both decide how Pulse gets a new reading. [../networking.md](../networking.md)

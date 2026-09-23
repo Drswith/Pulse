@@ -794,6 +794,23 @@ final class AppSettings {
         }
     }
 
+    /// How clear the glass is, 0 to 1: how little of `PanelGlass`'s dimming
+    /// sits under the panel's white content. The reader's to choose because
+    /// the right amount depends on what is usually behind the panel — a
+    /// white page wants more, a dark editor none.
+    ///
+    /// Deliberately no `onChange`: that refetches every provider, and a
+    /// slider sets this dozens of times a second. The panel is `@Observable`
+    /// and redraws on its own.
+    var glassTransparency: Double {
+        didSet {
+            let clamped = min(max(glassTransparency, 0), 1)
+            guard clamped == glassTransparency else { glassTransparency = clamped; return }
+            guard glassTransparency != oldValue else { return }
+            UserDefaults.standard.set(glassTransparency, forKey: Key.glassTransparency)
+        }
+    }
+
     /// Whether the rail hides down to a sliver when the pointer is elsewhere.
     ///
     /// On by default. The panel sits over whatever else is on screen all day,
@@ -970,6 +987,7 @@ final class AppSettings {
         panelSize: PanelSize = .default,
         railSpacing: RailSpacing = .default,
         usesGlass: Bool = false,
+        glassTransparency: Double = PanelGlass.defaultTransparency,
         topRailShowsPercentages: Bool = false,
         sideRailShowsPercentages: Bool = true,
         labelAboveRing: Bool = false,
@@ -1018,6 +1036,7 @@ final class AppSettings {
         self.panelSize = panelSize
         self.railSpacing = railSpacing
         self.usesGlass = usesGlass
+        self.glassTransparency = min(max(glassTransparency, 0), 1)
         self.topRailShowsPercentages = topRailShowsPercentages
         self.sideRailShowsPercentages = sideRailShowsPercentages
         self.labelAboveRing = labelAboveRing
@@ -1299,6 +1318,7 @@ final class AppSettings {
             railSpacing: defaults.string(forKey: Key.railSpacing)
                 .flatMap(RailSpacing.init(rawValue:)) ?? .default,
             usesGlass: defaults.object(forKey: Key.usesGlass) as? Bool ?? false,
+            glassTransparency: defaults.object(forKey: Key.glassTransparency) as? Double ?? PanelGlass.defaultTransparency,
             topRailShowsPercentages: defaults.object(forKey: Key.topRailShowsPercentages) as? Bool ?? false,
             sideRailShowsPercentages: defaults.object(forKey: Key.sideRailShowsPercentages) as? Bool ?? true,
             labelAboveRing: defaults.object(forKey: Key.labelAboveRing) as? Bool ?? false,
@@ -1420,6 +1440,7 @@ final class AppSettings {
         static let panelSize = "settings.panelSize"
         static let railSpacing = "settings.railSpacing"
         static let usesGlass = "settings.usesGlass"
+        static let glassTransparency = "settings.glassTransparency"
         static let topRailShowsPercentages = "settings.topRailShowsPercentages"
         static let sideRailShowsPercentages = "settings.sideRailShowsPercentages"
         static let labelAboveRing = "settings.labelAboveRing"

@@ -433,6 +433,27 @@ private final class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
+    /// **What makes the glass Liquid Glass rather than a frosted blur.** A
+    /// private AppKit question, answered here so the panel's glass always
+    /// renders active.
+    ///
+    /// macOS 26 draws glass in an inactive window as a flat blur with no
+    /// lensing. This panel is inactive almost always: it cannot become key,
+    /// and once Pulse has been active even once (Settings opened, a menu
+    /// used) every window it owns is drawn inactive from the moment another
+    /// app takes over. Measured on 26.7 over busy text: SwiftUI or AppKit
+    /// glass, `.clear` or `.regular`, any size, with `appearsActive` /
+    /// `controlActiveState` forced in the environment, re-ordered or rebuilt
+    /// after deactivation — all frosted. Returning `true` here was refracted,
+    /// readable glass in every case, with `canBecomeKey` still `false`.
+    ///
+    /// Chosen over making the panel key-eligible, which also works until the
+    /// app is first deactivated and would put focus at risk. Private, so it
+    /// may stop being asked: then the glass is frosted again and nothing else
+    /// breaks — the panel has no controls whose look depends on this.
+    @objc(_hasActiveAppearanceIgnoringKeyFocus)
+    private func hasActiveAppearanceIgnoringKeyFocus() -> Bool { true }
+
     /// What can be taken hold of, in the panel's own top-left coordinates:
     /// the rail when it is drawn out, its sliver when it is not. Supplied by
     /// the controller, which is what knows how many providers are switched on.
