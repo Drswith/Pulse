@@ -77,9 +77,11 @@ struct BotMarkContinuityTests {
             let transform = engine.advance(to: time, programme: programme).transform
 
             let point = CGPoint(x: centre, y: centre).applying(transform)
-            let degrees = atan2(transform.b, transform.a) * 180 / .pi
+            // Explicit: CI's toolchain will not convert a CGFloat into the
+            // tuple's Double on assignment, though a newer one does.
+            let degrees = Double(atan2(transform.b, transform.a) * 180 / .pi)
             if let previous {
-                worstMove = max(worstMove, hypot(point.x - previous.point.x, point.y - previous.point.y))
+                worstMove = max(worstMove, Double(hypot(point.x - previous.point.x, point.y - previous.point.y)))
                 let turned = abs(degrees - previous.degrees)
                 worstTurn = max(worstTurn, min(turned, 360 - turned))
             }
