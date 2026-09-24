@@ -432,17 +432,11 @@ struct QoderUsageService: Sendable {
         return windows
     }
 
-    /// The soonest packs to lapse: everything ending on the same day as the
-    /// first one to, added up. Six packs a day apart are six dates; two an
-    /// hour apart are one, and "86 expire" beside another 100 going that same
-    /// evening would understate the day. Nil when nothing still ahead has
-    /// credits in it.
+    /// The soonest packs to lapse, by `UsageWindow.Expiry.soonest`'s rule.
     static func nextExpiry(of packs: [QoderSnapshot.Pack], at now: Date,
                            calendar: Calendar = .current) -> UsageWindow.Expiry? {
-        let ahead = packs.filter { $0.expiresAt > now }
-        guard let first = ahead.map(\.expiresAt).min() else { return nil }
-        let sameDay = ahead.filter { calendar.isDate($0.expiresAt, inSameDayAs: first) }
-        return .init(amount: sameDay.reduce(0) { $0 + $1.remaining }, at: first)
+        UsageWindow.Expiry.soonest(of: packs.map { ($0.remaining, $0.expiresAt) },
+                                   after: now, calendar: calendar)
     }
 
     private static func window(_ pool: QoderSnapshot.Pool, id: String, kind: UsageWindow.Kind,

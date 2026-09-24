@@ -288,9 +288,11 @@ struct UsageDetailCard: View {
         formatter.setLocalizedDateFormatFromTemplate(
             Calendar.current.isDateInToday(expiry.at) ? "jmm" : "MMMd"
         )
-        let amount = expiry.amount.formatted(
-            .number.precision(.fractionLength(0...1)).locale(LocalizationSource.locale)
-        )
+        // StepFun counts in Credits of which a plan holds billions: "1,599,913,834"
+        // does not fit the slot, and the scale is the point, as with tokens.
+        let amount = expiry.amount >= 10_000
+            ? TokenCount.short(Int(expiry.amount))
+            : expiry.amount.formatted(.number.precision(.fractionLength(0...1)).locale(LocalizationSource.locale))
         return String.localized("\(formatter.string(from: expiry.at)): \(amount) credits expire")
     }
 

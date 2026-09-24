@@ -660,3 +660,8 @@
 "No Qoder session found. Sign in at %@ first." = "Qoder のセッションが見つかりません。先に %@ でサインインしてください。";
 "Site" = "サイト";
 "Where you signed in. Changing it clears the saved session." = "サインインしたサイトです。切り替えると保存済みのセッションは消去されます。";
+"Sign in to StepFun's platform in a browser to see usage." = "ブラウザで StepFun のプラットフォームにサインインすると使用量が表示されます。";
+"StepFun's saved session expired. Sign in again in your browser." = "StepFun の保存済みセッションが期限切れです。ブラウザでサインインし直してください。";
+"No Step Plan on this StepFun account." = "この StepFun アカウントには Step Plan がありません。";
+"Reads your Step Plan with your signed-in browser session." = "サインイン済みのブラウザセッションで Step Plan を読み取ります。";
+"No StepFun session found. Sign in at %@ first." = "StepFun のセッションが見つかりません。先に %@ でサインインしてください。";

@@ -165,9 +165,23 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
     /// whichever of this and `resetsAt` comes first. Nil where the provider
     /// states no expiry, which is everywhere but Qoder.
     struct Expiry: Equatable, Codable, Sendable {
-        /// In the allowance's own unit — Qoder's credits.
+        /// In the allowance's own unit — Qoder's or StepFun's credits.
         let amount: Double
         let at: Date
+
+        /// The soonest parts to lapse: everything ending on the same day as
+        /// the first one to, added up. Six packs a day apart are six dates;
+        /// two an hour apart are one, and "86 expire" beside another 100 going
+        /// that same evening would understate the day. Only parts still ahead
+        /// of `now` with something left in them count; nil when there are
+        /// none.
+        static func soonest(of parts: [(amount: Double, at: Date)], after now: Date,
+                            calendar: Calendar = .current) -> Expiry? {
+            let ahead = parts.filter { $0.at > now && $0.amount > 0 }
+            guard let first = ahead.map(\.at).min() else { return nil }
+            let sameDay = ahead.filter { calendar.isDate($0.at, inSameDayAs: first) }
+            return .init(amount: sameDay.reduce(0) { $0 + $1.amount }, at: first)
+        }
     }
 
     var nextExpiry: Expiry?
@@ -566,6 +580,11 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
         /// A complete answer — nothing has been granted — and not a ring at
         /// 100%, which would say something was spent.
         case qoderNoCredits
+        /// StepFun's console answers only to a browser session, and a working
+        /// one can find no Step Plan on the account — an answer, like Xiaomi's.
+        case stepFunSessionMissing
+        case stepFunSessionExpired
+        case stepFunNoPlan
         /// A provider whose address is the reader's own has not been given
         /// one. Separate from a missing key because they are two fields and
         /// two steps, and "add an API key" about the one that already has a
@@ -620,6 +639,9 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
             case .qoderSessionMissing: .localized("Sign in to Qoder in a browser to see usage.")
             case .qoderSessionExpired: .localized("Qoder's saved session expired. Sign in again in your browser.")
             case .qoderNoCredits: .localized("This Qoder account has no credits.")
+            case .stepFunSessionMissing: .localized("Sign in to StepFun's platform in a browser to see usage.")
+            case .stepFunSessionExpired: .localized("StepFun's saved session expired. Sign in again in your browser.")
+            case .stepFunNoPlan: .localized("No Step Plan on this StepFun account.")
             case .ollamaSessionMissing: .localized("Add an Ollama session in Settings.")
             case .ollamaSessionExpired: .localized("The Ollama session expired. Sign in again and add it.")
             case .ollamaPageChanged: .localized("Ollama's page has changed and can no longer be read.")
@@ -704,7 +726,7 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
     /// likewise: its two sites are two accounts, and the site is a setting.
     var requiresScopeMatch: Bool {
         switch account.provider {
-        case .devin, .sub2api, .newAPI, .qoder: true
+        case .devin, .sub2api, .newAPI, .qoder, .stepFun: true
         default: false
         }
     }

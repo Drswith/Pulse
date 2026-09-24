@@ -72,10 +72,11 @@ actor UsageCache {
     /// something, whichever was actually taken later.
     func reconciled(_ result: ProviderUsage) -> ProviderUsage {
         let fetched = result.recordingSoleRoute()
-        // Qoder confirmed there is no allowance. It supersedes the old
-        // figures, including on the next launch and in the cached JSON export.
-        // A failed or unreadable request still uses the ordinary fallback.
-        if fetched.state == .unavailable(.qoderNoCredits) {
+        // Qoder confirmed there is no allowance, or StepFun that there is no
+        // Step Plan. It supersedes the old figures, including on the next
+        // launch and in the cached JSON export. A failed or unreadable request
+        // still uses the ordinary fallback.
+        if fetched.state == .unavailable(.qoderNoCredits) || fetched.state == .unavailable(.stepFunNoPlan) {
             discard(for: fetched.account)
             return fetched
         }
@@ -155,7 +156,7 @@ actor UsageCache {
         // server to have a reading from. So is a Qoder session discarded
         // because the site changed: what is banked is the other site's.
         if case .unavailable(let reason) = fetched.state,
-           [.apiKeyMissing, .ollamaSessionMissing, .qoderSessionMissing, .signedOut,
+           [.apiKeyMissing, .ollamaSessionMissing, .qoderSessionMissing, .stepFunSessionMissing, .signedOut,
             .claudeDesktopNotSignedIn, .claudeDesktopKeyRefused,
             .serverAddressMissing, .serverAddressRefused].contains(reason) {
             return fetched
