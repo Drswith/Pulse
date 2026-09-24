@@ -1369,13 +1369,6 @@ final class BotMarkEngine {
         // Frame-rate corrected exponential smoothing, as upstream.
         let smoothing = 1 - exp(60 * log(0.91) * delta)
 
-        let bodyExtents = shapeRing.reduce(
-            into: (minimum: Double.infinity, maximum: -Double.infinity)
-        ) { extents, point in
-            extents.minimum = min(extents.minimum, Double(point.x))
-            extents.maximum = max(extents.maximum, Double(point.x))
-        }
-        let edgeClearance = max(bodyExtents.maximum - bodyExtents.minimum, 0) * 0.025
         var output: [BotMarkFrame.Eye] = []
         for index in 0..<2 {
             // Upstream advances the pointer once per eye, so it settles twice
@@ -1443,19 +1436,11 @@ final class BotMarkEngine {
             // make every expression's eyes sit in the same place.
             driftX -= pairOffset * (1 - autonomousGazeWeight)
             driftX += pointerX * focus
-
-            // **The gaze rides inside the face; it does not push past it.**
-            // The expression is already looking somewhere — up to `eyeReach`
-            // off the head's centre — and the lean, the state's glance and
-            // the pointer are all added on top. Stacked the same way they put
-            // an eye outside the silhouette, where it is simply clipped: on a
-            // 25pt ring that reads as a mark with one eye missing, which is
-            // what it looked like. So the boldest thing the artwork itself
-            // does is the ceiling for the total, and anything Pulse adds has
-            // to fit under it. Moving back toward the middle is never
-            // restricted — only leaving the face is.
-            let reach = library.eyeReach
-            driftX = BotMath.clamp(pairOffset + driftX, -reach, reach) - pairOffset
+            // **No ceiling of Pulse's own on the total.** One capped it at the
+            // boldest expression's reach, and that cut the upstream's own
+            // glances and gestures short whenever the expression already
+            // leaned that way — a head shake lost half its sweep. The
+            // silhouette clamp below is the upstream's, and the only bound.
             driftY += pointerY * focus + aimY.value * autonomousGazeWeight + directGazeY
             let notification = BotMath.clamp(notify.value, 0, 1)
             driftX -= 10 * notification
@@ -1473,11 +1458,9 @@ final class BotMarkEngine {
             let y = BotMath.clamp(headCentre + face.y + (centre.y + driftY - headCentre) * face.sy,
                           scanTop + halfHeight, scanBottom - halfHeight)
 
-            // Keep the eye visibly inside the silhouette: sample the body's
-            // width at every other point of the eye outline and clamp to the
-            // tightest. The inset is about half a point at ring size, enough
-            // that antialiasing does not turn an edge-clamped eye into half an
-            // eye without pulling ordinary glances toward the middle.
+            // Keep the eye inside the silhouette, as the upstream does: sample
+            // the body's width at every other point of the eye outline and
+            // clamp to the tightest.
             var maxLeft = -Double.infinity
             var minRight = Double.infinity
             for pointIndex in stride(from: 0, to: ring.count, by: 2) {
@@ -1486,8 +1469,8 @@ final class BotMarkEngine {
                 let span = abs(turnAngle) > 0.001
                     ? BotMarkGeometry.spanAt(shapeRing, sampleY, headCentre: headCentre)
                     : BotMarkGeometry.shapeSpanAt(shape, spanSamples: spanSamples, sampleY, headCentre: headCentre)
-                maxLeft = max(maxLeft, span.0 + edgeClearance - scaledX)
-                minRight = min(minRight, span.1 - edgeClearance - scaledX)
+                maxLeft = max(maxLeft, span.0 - scaledX)
+                minRight = min(minRight, span.1 - scaledX)
             }
             let desired = localCentre + offsetX + driftX * face.sx
             let bounded = maxLeft <= minRight
