@@ -20,8 +20,9 @@ import Foundation
 /// found it disagreeing with the billing page for paid accounts. The web
 /// route is the one the page itself uses.
 ///
-/// Reply shape, from the account page's own request — camelCase today, and
-/// the snake_case of an earlier build is still accepted:
+/// Reply shape, from the account page's own request. Both spellings are
+/// accepted per field: the mainland site's reply mixes them (`nextResetAt`
+/// beside `total_quota`), and other readers recorded all-camelCase:
 ///
 /// ```json
 /// { "quotaKey": "big_model_credits", "status": "active",
@@ -329,11 +330,12 @@ struct QoderUsageService: Sendable {
         }
         do {
             let snapshot = try await client.fetch(cookie: cookie, site: site)
-            let windows = Self.windows(from: snapshot)
+            let now = Date()
+            let windows = Self.windows(from: snapshot, at: now)
             guard !windows.isEmpty else { throw QoderError.noCredits }
             return .init(account: AccountKey(.qoder),
                          windows: windows,
-                         observedAt: Date(),
+                         observedAt: now,
                          state: .live,
                          plan: nil,
                          creditBalance: nil)
@@ -362,10 +364,19 @@ struct QoderUsageService: Sendable {
     /// rounding. A pool with a limit of zero is **not drawn**: there is no
     /// allowance to divide by, and a ring at 100% would say something was
     /// spent that was never granted.
-    static func windows(from snapshot: QoderSnapshot) -> [UsageWindow] {
+    ///
+    /// **A reset already behind `now` is no reset.** A mainland trial account
+    /// was seen answering with a `nextResetAt` a month in the past beside 586
+    /// credits it could still spend (issue #59): the period stopped turning
+    /// over and the date was left where it was. Passed on, it marks the ring
+    /// as reset, the cache drops it as expired, and a complete reading
+    /// becomes "no limits reported". The credits are real; the date is not,
+    /// so the ring is drawn without one.
+    static func windows(from snapshot: QoderSnapshot, at now: Date) -> [UsageWindow] {
         var windows: [UsageWindow] = []
+        let resetsAt = snapshot.resetsAt.flatMap { $0 > now ? $0 : nil }
         if let window = window(snapshot.personal, id: "qoder.credits", kind: .credits,
-                               resetsAt: snapshot.resetsAt) {
+                               resetsAt: resetsAt) {
             windows.append(window)
         }
         // The reset Qoder states is the account's. Whether a team's pool turns
