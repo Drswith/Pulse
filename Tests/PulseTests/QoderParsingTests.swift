@@ -116,6 +116,8 @@ struct QoderParsingTests {
         #expect(windows.count == 1)
         #expect(windows[0].resetsAt == nil)
         #expect(!windows[0].isExhausted)
+        // What the card says instead: the pack with 86 left, lapsing first.
+        #expect(windows[0].nextExpiry == .init(amount: 86, at: Date(timeIntervalSince1970: 1_792_313_971.562)))
 
         let usage = ProviderUsage(account: AccountKey(.qoder), windows: windows, observedAt: Date(),
                                   state: .live, plan: nil, creditBalance: nil)
@@ -123,6 +125,63 @@ struct QoderParsingTests {
             .appending(path: "pulse-qoder-test-\(UUID().uuidString).json")).reconciled(usage)
         #expect(shown.state == .live)
         #expect(shown.windows.count == 1)
+    }
+
+    /// Six bonus packs, each ending on its own day. The plan's entry has no
+    /// date and is not one of them; the one with credits left that ends first
+    /// is what the card names.
+    @Test("The packs' end dates are read, soonest first")
+    func packsAreRead() throws {
+        let snapshot = try QoderClient.parse(Self.fixture("qoder-credits-trial-stale-reset"))
+        #expect(snapshot.packs.count == 6)
+        #expect(snapshot.packs.map(\.remaining).reduce(0, +) == 586)
+    }
+
+    /// Packs ending the same day are one line on the card, added up; a pack
+    /// already gone or already spent is none.
+    @Test("Packs lapsing the same day are added up")
+    func sameDayPacksAddUp() {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+        let morning = now.addingTimeInterval(3 * 86_400)
+        let packs: [QoderSnapshot.Pack] = [
+            .init(remaining: 40, expiresAt: now.addingTimeInterval(-60)),
+            .init(remaining: 100, expiresAt: morning.addingTimeInterval(3_600)),
+            .init(remaining: 86, expiresAt: morning),
+            .init(remaining: 100, expiresAt: morning.addingTimeInterval(2 * 86_400)),
+        ]
+        let expiry = QoderUsageService.nextExpiry(of: packs, at: now, calendar: utc)
+        #expect(expiry == .init(amount: 186, at: morning))
+        #expect(QoderUsageService.nextExpiry(of: [], at: now) == nil)
+    }
+
+    /// Older fixtures carry no detail at all, and a detail list this cannot
+    /// read must not cost the summary beside it.
+    @Test("No detail, or an unreadable one, is no expiry")
+    func unreadableDetailIsNoExpiry() throws {
+        #expect(try QoderClient.parse(Self.fixture("qoder-credits")).packs.isEmpty)
+        let odd = try QoderClient.parse(Data(#"""
+            {"total_quota":{"quota_summary":{"used_value":1,"limit_value":10},"quota_detail":"soon"}}
+            """#.utf8))
+        #expect(odd.personal.limit == 10)
+        #expect(odd.packs.isEmpty)
+    }
+
+    /// Banked with the reading, so a restart does not lose the line; a cache
+    /// written before it existed reads as no expiry.
+    @Test("The expiry survives the cache, and its absence reads as none")
+    func expiryIsBanked() throws {
+        let expiry = UsageWindow.Expiry(amount: 86, at: Date(timeIntervalSince1970: 1_792_313_971))
+        let window = UsageWindow(id: "qoder.credits", kind: .credits, scope: nil, usedFraction: 0.02,
+                                 windowSeconds: 30 * 86_400, resetsAt: nil, reportsLength: false,
+                                 nextExpiry: expiry)
+        let data = try JSONEncoder().encode(window)
+        #expect(try JSONDecoder().decode(UsageWindow.self, from: data).nextExpiry == expiry)
+
+        let old = UsageWindow(id: "qoder.credits", kind: .credits, scope: nil, usedFraction: 0.02,
+                              windowSeconds: 30 * 86_400, resetsAt: nil)
+        #expect(try JSONDecoder().decode(UsageWindow.self, from: JSONEncoder().encode(old)).nextExpiry == nil)
     }
 
     /// A limit of zero is an account with nothing granted. Not a ring at 100%,

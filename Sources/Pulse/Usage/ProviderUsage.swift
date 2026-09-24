@@ -156,6 +156,22 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
 
     var estimate: Estimate?
 
+    /// The soonest a part of this allowance **stops existing**, as the
+    /// provider states it: how much, and when.
+    ///
+    /// Not a reset. A reset gives the allowance back; this takes it away —
+    /// Qoder's bonus packs each carry their own `expires_at`, and a total of
+    /// 586 can hold 500 that are gone by the end of the month. The card shows
+    /// whichever of this and `resetsAt` comes first. Nil where the provider
+    /// states no expiry, which is everywhere but Qoder.
+    struct Expiry: Equatable, Codable, Sendable {
+        /// In the allowance's own unit — Qoder's credits.
+        let amount: Double
+        let at: Date
+    }
+
+    var nextExpiry: Expiry?
+
     /// Spelled out because the hand-written `init(from:)` below suppresses the
     /// synthesised one. Same order and same defaults as before.
     init(
@@ -167,7 +183,8 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         resetsAt: Date?,
         reportsLength: Bool = true,
         estimate: Estimate? = nil,
-        isExhausted: Bool = false
+        isExhausted: Bool = false,
+        nextExpiry: Expiry? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -178,6 +195,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         self.reportsLength = reportsLength
         self.estimate = estimate
         self.isExhausted = isExhausted
+        self.nextExpiry = nextExpiry
     }
 
     /// Decoded by hand for one reason: `estimate` replaced a stored
@@ -200,6 +218,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         resetsAt = try container.decodeIfPresent(Date.self, forKey: .resetsAt)
         reportsLength = try container.decodeIfPresent(Bool.self, forKey: .reportsLength) ?? true
         isExhausted = try container.decodeIfPresent(Bool.self, forKey: .isExhausted) ?? false
+        nextExpiry = try container.decodeIfPresent(Expiry.self, forKey: .nextExpiry)
 
         if let estimate = try container.decodeIfPresent(Estimate.self, forKey: .estimate) {
             self.estimate = estimate
@@ -224,11 +243,12 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         try container.encode(reportsLength, forKey: .reportsLength)
         try container.encodeIfPresent(estimate, forKey: .estimate)
         try container.encode(isExhausted, forKey: .isExhausted)
+        try container.encodeIfPresent(nextExpiry, forKey: .nextExpiry)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, kind, scope, usedFraction, windowSeconds, resetsAt
-        case reportsLength, isExhausted, estimate
+        case reportsLength, isExhausted, estimate, nextExpiry
         /// Written by 1.0.9 and earlier. Read, never written.
         case isEstimated
     }

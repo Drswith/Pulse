@@ -254,6 +254,12 @@ struct UsageDetailCard: View {
     }
 
     private static func resetText(_ window: UsageWindow) -> String {
+        // **Whichever happens first.** Credits lapsing before a reset hands
+        // the allowance back are the thing to know; after it, the reset is.
+        if let expiry = window.nextExpiry, window.resetsAt.map({ expiry.at < $0 }) ?? true {
+            return expiryText(expiry)
+        }
+
         // **The fallback may only state a length the provider stated.**
         // `windowSeconds` is sometimes a sort key rather than a measurement —
         // Cursor's billing cycle stored as a flat 30 days, Kimi's rolling
@@ -271,6 +277,21 @@ struct UsageDetailCard: View {
             Calendar.current.isDateInToday(resets) ? "jmm" : "MMMdjmm"
         )
         return String.localized("Resets \(formatter.string(from: resets))")
+    }
+
+    /// "10月18日 86 积分到期". The date alone unless it is today — a pack
+    /// ends at whatever minute it was granted, and that minute is noise a
+    /// week out.
+    private static func expiryText(_ expiry: UsageWindow.Expiry) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = LocalizationSource.locale
+        formatter.setLocalizedDateFormatFromTemplate(
+            Calendar.current.isDateInToday(expiry.at) ? "jmm" : "MMMd"
+        )
+        let amount = expiry.amount.formatted(
+            .number.precision(.fractionLength(0...1)).locale(LocalizationSource.locale)
+        )
+        return String.localized("\(formatter.string(from: expiry.at)): \(amount) credits expire")
     }
 
     private static func relative(_ date: Date) -> String {

@@ -156,6 +156,16 @@ struct QoderSnapshot: Equatable, Sendable {
     /// an empty placeholder — a pool of zero is not one anybody can spend.
     let shared: Pool?
     let resetsAt: Date?
+
+    /// A part of the personal total with an end date of its own — on the one
+    /// reply seen, a bonus pack of 100 credits. Only the ones with credits
+    /// left and a date stated: a plan's entry carries `expires_at: 0`.
+    struct Pack: Equatable, Sendable {
+        let remaining: Double
+        let expiresAt: Date
+    }
+
+    var packs: [Pack] = []
 }
 
 /// A read-only adapter for the account page's route. Kept apart from the app
@@ -218,7 +228,13 @@ struct QoderClient: Sendable {
             throw QoderError.unreadableReply
         }
         let shared = reply.sharedQuota?.quotaSummary.flatMap(Self.pool).flatMap { $0.limit > 0 ? $0 : nil }
-        return QoderSnapshot(personal: personal, shared: shared, resetsAt: reply.nextResetAt)
+        let packs = (reply.totalQuota?.quotaDetail ?? []).compactMap { detail -> QoderSnapshot.Pack? in
+            guard detail.isActive != false, let remaining = detail.remainingValue,
+                  remaining.isFinite, remaining > 0, let expiresAt = detail.expiresAt
+            else { return nil }
+            return .init(remaining: remaining, expiresAt: expiresAt)
+        }
+        return QoderSnapshot(personal: personal, shared: shared, resetsAt: reply.nextResetAt, packs: packs)
     }
 
     /// A summary Qoder stated in full, or nil. Negative figures are not a
@@ -240,10 +256,29 @@ struct QoderClient: Sendable {
 
         struct Container: Decodable {
             let quotaSummary: Summary?
+            /// The pieces the summary adds up, each with its own end date.
+            /// Read for those dates only, and **never allowed to cost the
+            /// summary**: an entry this cannot read is left out, and a detail
+            /// list it cannot read at all is an empty one.
+            let quotaDetail: [Detail]?
 
             init(from decoder: Decoder) throws {
                 let container = try decoder.container(keyedBy: AnyKey.self)
                 quotaSummary = try container.either(Summary.self, "quotaSummary", "quota_summary")
+                quotaDetail = (try? container.either([Detail].self, "quotaDetail", "quota_detail")) ?? nil
+            }
+        }
+
+        struct Detail: Decodable {
+            let remainingValue: Double?
+            let expiresAt: Date?
+            let isActive: Bool?
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: AnyKey.self)
+                remainingValue = (try? container.either(Double.self, "remainingValue", "remaining_value")) ?? nil
+                expiresAt = container.date("expiresAt") ?? container.date("expires_at")
+                isActive = (try? container.either(Bool.self, "isActive", "is_active")) ?? nil
             }
         }
 
@@ -375,8 +410,9 @@ struct QoderUsageService: Sendable {
     static func windows(from snapshot: QoderSnapshot, at now: Date) -> [UsageWindow] {
         var windows: [UsageWindow] = []
         let resetsAt = snapshot.resetsAt.flatMap { $0 > now ? $0 : nil }
-        if let window = window(snapshot.personal, id: "qoder.credits", kind: .credits,
+        if var window = window(snapshot.personal, id: "qoder.credits", kind: .credits,
                                resetsAt: resetsAt) {
+            window.nextExpiry = nextExpiry(of: snapshot.packs, at: now)
             windows.append(window)
         }
         // The reset Qoder states is the account's. Whether a team's pool turns
@@ -387,6 +423,19 @@ struct QoderUsageService: Sendable {
             windows.append(window)
         }
         return windows
+    }
+
+    /// The soonest packs to lapse: everything ending on the same day as the
+    /// first one to, added up. Six packs a day apart are six dates; two an
+    /// hour apart are one, and "86 expire" beside another 100 going that same
+    /// evening would understate the day. Nil when nothing still ahead has
+    /// credits in it.
+    static func nextExpiry(of packs: [QoderSnapshot.Pack], at now: Date,
+                           calendar: Calendar = .current) -> UsageWindow.Expiry? {
+        let ahead = packs.filter { $0.expiresAt > now }
+        guard let first = ahead.map(\.expiresAt).min() else { return nil }
+        let sameDay = ahead.filter { calendar.isDate($0.expiresAt, inSameDayAs: first) }
+        return .init(amount: sameDay.reduce(0) { $0 + $1.remaining }, at: first)
     }
 
     private static func window(_ pool: QoderSnapshot.Pool, id: String, kind: UsageWindow.Kind,
