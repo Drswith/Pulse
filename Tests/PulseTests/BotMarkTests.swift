@@ -546,35 +546,6 @@ struct BotMarkTests {
         #expect(framesWithRibbons > 60, "no ribbons in thirty seconds of working")
     }
 
-    /// The head may not leave the canvas: the viewBox has about 15 units of
-    /// margin around the body, and `drowsy` nods 25.
-    @Test("No state pushes the head off its canvas")
-    func headStaysInsideTheCanvas() {
-        for persona in BotMarkPersona.allCases {
-            for mood in BotMarkMood.allCases {
-                let engine = BotMarkEngine()
-                var time = 0.0
-                while time < 8 {
-                    time += 1.0 / 60
-                    let frame = engine.advance(to: time,
-                                               programme: Self.programme(persona, mood))
-                    // A morph moves the character on purpose — the pencil
-                    // walks it across the canvas as it writes — and brings its
-                    // own viewBox. Only the plain body is bounded.
-                    guard frame.morphAmount < 0.01 else { continue }
-                    // Where the body's own centre actually lands, by running
-                    // it through the frame's transform — reading `tx` off the
-                    // matrix instead mixes in the rotation about that centre.
-                    let centre = BotMarkLibrary.shared.headCentre
-                    let drawn = CGPoint(x: centre, y: centre).applying(frame.transform)
-                    let slid = max(abs(Double(drawn.x) - centre), abs(Double(drawn.y) - centre))
-                    #expect(slid < 13,
-                            "\(persona.rawValue)/\(mood.rawValue) slid \(Int(slid)) units")
-                }
-            }
-        }
-    }
-
     /// A one-shot has to interrupt the playlist, play once, and hand it back
     /// — and it must not replay for as long as the fact stays true, which for
     /// a reset is twenty seconds of frames.

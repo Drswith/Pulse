@@ -1202,17 +1202,12 @@ final class BotMarkEngine {
                                       into: &shapes)
 
         let normal = 1 - morphAmount
-        // **Bounded to the room the viewBox has.** The box is 259 units
-        // around a 229-unit body, so the character has about 15 units to move
-        // in — and `drowsy` nods 25, a bounce gesture throws it 48, and
-        // `dragging` slides 16. Off the canvas it is simply clipped: the top
-        // of the head disappears, which reads as a glitch rather than as a
-        // jump. Bounded here rather than at the spring targets, so the physics
-        // stay the upstream's and only what is drawn is kept inside. Morph
-        // poses are left alone: an effect brings its own wider viewBox.
-        let room = 12.0
-        let travelX = BotMath.clamp((headX.value + directX) * normal, -room, room)
-        let travelY = BotMath.clamp((headY.value + directY) * normal, -room, room)
+        // **Not bounded, as upstream.** Pulse once kept the drawn position
+        // within 12 units so a big move (`drowsy` nods 25, a bounce throws
+        // the body 48) stayed inside the viewBox; the original lets it run
+        // off and be clipped, and the original is what is drawn.
+        let travelX = (headX.value + directX) * normal
+        let travelY = (headY.value + directY) * normal
         let rawX = travelX + pose.x
         let rawY = travelY + pose.y
         let rawDegrees = rotation.value * 180 / .pi * geometry.tiltScale * normal
