@@ -230,6 +230,34 @@ struct RailGeometryTests {
             }
         }
     }
+
+    @Test("The panel window fits inside the selected display")
+    func panelWindowFitsVisibleFrame() {
+        let visible = CGRect(x: 0, y: 51, width: 1512, height: 893)
+
+        for edge in Self.edges {
+            let panel = FloatingPanelController.Layout.size(for: edge, within: visible)
+            #expect(panel.width <= visible.width, "\(edge): width \(panel.width) exceeds \(visible.width)")
+            #expect(panel.height <= visible.height, "\(edge): height \(panel.height) exceeds \(visible.height)")
+            #expect(panel.width == panel.width.rounded(), "\(edge): width \(panel.width) is fractional")
+            #expect(panel.height == panel.height.rounded(), "\(edge): height \(panel.height) is fractional")
+        }
+
+        // Recreate the right dock with two visible providers on the display
+        // that exposed the launch bug: the reserved all-provider window was
+        // taller than the usable screen and WindowServer left it offscreen.
+        let placement = PanelPlacement(dock: .edge(.right), verticalRatio: 0.5)
+        let rail = DockLayout.size(for: 2, on: .vertical)
+        let panel = FloatingPanelController.Layout.size(for: .right, within: visible)
+        let layout = placement.layout(in: visible, topEdge: visible.maxY, panel: panel, rail: rail)
+        let offsets = PanelPlacement.offsets(forRailTopLeft: layout.railOrigin, in: layout.frame, rail: rail)
+
+        #expect(layout.frame.minX >= visible.minX)
+        #expect(layout.frame.minY >= visible.minY)
+        #expect(layout.frame.maxX <= visible.maxX)
+        #expect(layout.frame.maxY <= visible.maxY)
+        #expect(abs(layout.frame.maxY - offsets.top - layout.railOrigin.y) < 0.01)
+    }
 }
 
 /// Nothing may move the panel while it is under a held mouse button.

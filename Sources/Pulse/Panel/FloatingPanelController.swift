@@ -37,9 +37,24 @@ final class FloatingPanelController {
         /// the edge — exactly where anyone reaching for a docked rail puts it
         /// — was "off the panel". The sliver opened on entry and the sampler
         /// shut it again, over and over. Rounded here, the two cannot differ.
-        static func size(for edge: PanelEdge, notchSize: CGSize? = nil) -> CGSize {
+        static func size(
+            for edge: PanelEdge,
+            notchSize: CGSize? = nil,
+            within visibleFrame: CGRect? = nil
+        ) -> CGSize {
             let size = unrounded(for: edge, notchSize: notchSize)
-            return CGSize(width: size.width.rounded(.up), height: size.height.rounded(.up))
+            let rounded = CGSize(width: size.width.rounded(.up), height: size.height.rounded(.up))
+            guard let visibleFrame else { return rounded }
+
+            // The budget leaves room for every account, but a display can be
+            // shorter than that rail. Asking WindowServer for the oversized
+            // frame can leave even the part of the panel that should be on the
+            // selected display offscreen. Bound the window before ordering it;
+            // `PanelPlacement` then measures the rail against the frame it gets.
+            return CGSize(
+                width: min(rounded.width, floor(visibleFrame.width)),
+                height: min(rounded.height, floor(visibleFrame.height))
+            )
         }
 
         private static func unrounded(for edge: PanelEdge, notchSize: CGSize?) -> CGSize {
@@ -387,18 +402,16 @@ final class FloatingPanelController {
         let layout = placement.layout(
             in: screen.visibleFrame,
             topEdge: FloatingPanel.topEdge(of: screen),
-            panel: Layout.size(for: edge, notchSize: placement.notch?.size),
+            panel: Layout.size(for: edge, notchSize: placement.notch?.size, within: screen.visibleFrame),
             rail: railSize
         )
 
         panel.applyLevel(for: placement.dock)
         panel.setFrame(layout.frame, display: true)
-        // **Measured against the frame the window actually got**, not the one
-        // it was asked for. The panel is as tall as a rail with every account
-        // on, which is taller than a laptop's usable screen, and AppKit will
-        // not hand out a frame that does not fit — so the two halves of the
-        // placement disagreed by however much it refused, and the rail was
-        // drawn that far off.
+        // Measure against the frame AppKit actually accepted, not the one it
+        // was asked for. It can constrain a request at a display edge; using
+        // the requested frame here would leave the rail offset from the window
+        // by however much AppKit adjusted.
         let offsets = PanelPlacement.offsets(
             forRailTopLeft: layout.railOrigin,
             in: panel.frame,
