@@ -6,6 +6,24 @@
         <description>Updates for Pulse.</description>
         <language>en</language>
         <item>
+            <title>1.12.3</title>
+            <pubDate>Wed, 21 Oct 2026 06:34:17 -0000</pubDate>
+            <sparkle:version>1.12.3</sparkle:version>
+            <sparkle:shortVersionString>1.12.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <link>https://github.com/qunqin24/Pulse/releases/tag/v1.12.3</link>
+            <description><![CDATA[<style>
+  h2 { font-size: 1.05em; margin: 0 0 .5em; }
+  ul { margin: 0; padding-left: 1.2em; }
+  li { margin: .3em 0; }
+  p { margin: .8em 0 0; }
+</style><h2>Pulse 1.12.3</h2><p><strong>改进与修复</strong></p><ul><li><strong>Antigravity 的 Gemini 3.8 Flash 按公开价格估算。</strong> 记录中的 <code>-n</code>、<code>-control</code>、<code>-xpe</code> 变体与基础型号使用同一价格，不再显示为无公开价格。感谢 <a href="https://github.com/qunqin24/Pulse/issues/90">@1206-skittle</a> 报告。</li></ul><p><a href="https://github.com/qunqin24/Pulse/releases/tag/v1.12.3">在 GitHub 上查看更新说明</a></p>]]></description>
+            <enclosure url="https://github.com/qunqin24/Pulse/releases/download/v1.12.3/Pulse-1.12.3.zip"
+                       length="16367660"
+                       type="application/octet-stream"
+                       sparkle:edSignature="f8uzn2PDeF7QGwFHGhcNOXgJ+btSacnb0DPvJRC+H4c5F9jvPw2lAsEaRGlb0YHu+V8ku26BchzW8i8AAgklBQ==" />
+        </item>
+        <item>
             <title>1.12.2</title>
             <pubDate>Sun, 18 Oct 2026 07:08:08 -0000</pubDate>
             <sparkle:version>1.12.2</sparkle:version>

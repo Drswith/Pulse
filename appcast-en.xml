@@ -6,6 +6,24 @@
         <description>Updates for Pulse.</description>
         <language>en</language>
         <item>
+            <title>1.12.3</title>
+            <pubDate>Wed, 21 Oct 2026 06:34:17 -0000</pubDate>
+            <sparkle:version>1.12.3</sparkle:version>
+            <sparkle:shortVersionString>1.12.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <link>https://github.com/qunqin24/Pulse/releases/tag/v1.12.3</link>
+            <description><![CDATA[<style>
+  h2 { font-size: 1.05em; margin: 0 0 .5em; }
+  ul { margin: 0; padding-left: 1.2em; }
+  li { margin: .3em 0; }
+  p { margin: .8em 0 0; }
+</style><h2>Pulse 1.12.3</h2><p><strong>Changed and fixed</strong></p><ul><li><strong>Antigravity&#x27;s Gemini 3.8 Flash is estimated at its published price.</strong> The <code>-n</code>, <code>-control</code> and <code>-xpe</code> variants in its records use the base model&#x27;s rate instead of showing as having no public price. Thanks to <a href="https://github.com/qunqin24/Pulse/issues/90">@1206-skittle</a> for reporting it.</li></ul><p><a href="https://github.com/qunqin24/Pulse/releases/tag/v1.12.3">Release notes on GitHub</a></p>]]></description>
+            <enclosure url="https://github.com/qunqin24/Pulse/releases/download/v1.12.3/Pulse-1.12.3.zip"
+                       length="16367660"
+                       type="application/octet-stream"
+                       sparkle:edSignature="f8uzn2PDeF7QGwFHGhcNOXgJ+btSacnb0DPvJRC+H4c5F9jvPw2lAsEaRGlb0YHu+V8ku26BchzW8i8AAgklBQ==" />
+        </item>
+        <item>
             <title>1.12.2</title>
             <pubDate>Sun, 18 Oct 2026 07:08:08 -0000</pubDate>
             <sparkle:version>1.12.2</sparkle:version>
